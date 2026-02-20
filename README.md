@@ -1,73 +1,27 @@
-# React + TypeScript + Vite
+# 🕵️ ShadowCheck (X/Twitter Shadowban Tool)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ShadowCheck is a clean, minimalist open-source web application designed to help X (formerly Twitter) users quickly verify if their accounts are facing unnotified visibility penalties such as Search Bans, Search Suggestion Bans, or Ghost Bans. 
 
-Currently, two official plugins are available:
+Check out the live demo here: **[shadowcheck.pages.dev](https://shadowcheck.pages.dev)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Tiga Lapis Analisis Shadowban**:
+  - **Search Suggestion Ban**: Mengecek apakah akun Anda dihapus dari index *autocomplete* pencarian publik.
+  - **Search Ban**: Mengecek apakah *tweets* Anda disembunyikan secara paksa dari hasil *Search*.
+  - **Ghost Ban**: Mendeteksi penalti *reply deboosting*, di mana balasan Anda selalu diletakkan paling bawah di bawah batasan *show more replies*.
+- **Anti Spam & Rate Limiting**: Memiliki *cooldown* antarmuka bawaan (5 detik) untuk mencegah eksploitasi dan limitasi API pihak ketiga secara tidak sengaja.
+- **Export to Image (Save PNG)**: Memudahkan pengguna untuk membagikan status *health check* akun mereka ke publik secara visual dengan 1 kali klik.
+- **Persistent Global Visitor Counter**: Sistem penghitung pengunjung (*hit counter*) global bawaan di bagian footer untuk memonitor aktivitas lalu lintas web.
+- **Dark Mode Support**: Terintegrasi penuh dengan sistem *Light/Dark Theme* secara estetis dengan *custom scrollbar*.
+- **CORS Image Fallback**: Menangani proteksi pemuatan Avatar pada *Privacy Browser* (seperti Brave / UBlock) dengan baik tanpa merusak antarmuka. Anda tetap dapat mengunduh PNG tanpa terkena kendala *Tainted Canvas*.
+- **Tips & FAQ Modal**: Tersedia *pop-up* terintegrasi yang menjelaskan cara menghindari *shadowban* beserta mitigasinya.
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
+*Developed as an Open Source utility.* 
+*(Not officially affiliated with X Corp).*
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```

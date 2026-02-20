@@ -84,6 +84,7 @@ export async function onRequestPost(context) {
       profileImageUrl: profileImageUrl,
       followersCount: followersCount,
       followingCount: followingCount,
+      isVerified: data.profile.is_blue_verified || data.profile.verified || followersCount >= 5000,
       exists: true,
       tests: {
         searchSuggestion: tests.typeahead === true || tests.typeahead === '_implied_good', 

@@ -4,6 +4,7 @@ export interface CheckResult {
   displayName?: string;
   followersCount?: number;
   followingCount?: number;
+  isVerified?: boolean;
   exists: boolean;
   tests: {
     searchSuggestion: boolean; // true = passed (no ban), false = failed (banned)
