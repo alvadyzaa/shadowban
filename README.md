@@ -2,7 +2,7 @@
 
 ShadowCheck is a clean, minimalist open-source web application designed to help X (formerly Twitter) users quickly verify if their accounts are facing unnotified visibility penalties such as Search Bans, Search Suggestion Bans, or Ghost Bans. 
 
-Check out the live demo here: **[shadowcheck.pages.dev](https://shadowcheck.pages.dev)**
+Check out the live demo here: **[shadowbanchecker.pages.dev](https://shadowbanchecker.pages.dev)**
 
 ---
 
