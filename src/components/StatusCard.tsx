@@ -110,7 +110,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm">
             {result.profileImageUrl ? (
-              <img src={result.profileImageUrl} alt={result.username} className="w-full h-full object-cover" crossOrigin="anonymous" />
+              <img src={result.profileImageUrl} alt={result.username} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-xl">
                 {result.username.charAt(0).toUpperCase()}
