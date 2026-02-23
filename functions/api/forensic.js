@@ -44,13 +44,13 @@ export async function onRequestGet(context) {
       // Phase 1: Start
       await sendEvent({
         type: 'log',
-        entry: { timestamp: now(), icon: '🚀', message: `Memulai Forensic Audit Mendalam @${username}`, type: 'info' }
+        entry: { timestamp: now(), icon: '🚀', message: `Memulai Deep Scan @${username}`, type: 'info' }
       });
 
       // Phase 2: Basic checks (these are done in parallel by the main /api/shadow endpoint, but we log them here)
       await sendEvent({
         type: 'log',
-        entry: { timestamp: now(), icon: '🔍', message: 'Cek Search Ban + Suggestion Ban secara paralel...', type: 'info' }
+        entry: { timestamp: now(), icon: '🔍', message: 'Memeriksa Search Ban + Suggestion Ban...', type: 'info' }
       });
 
       // Fetch yuzurisa for basic data
@@ -91,13 +91,13 @@ export async function onRequestGet(context) {
       // Phase 3: Reply Mining — find threads where user replied
       await sendEvent({
         type: 'log',
-        entry: { timestamp: now(), icon: '⛏️', message: 'Menambang Sampel Balasan di Lapak Orang Lain...', type: 'info' }
+        entry: { timestamp: now(), icon: '🔎', message: 'Mencari sampel reply di thread orang lain...', type: 'info' }
       });
 
       // Get user profile data to find tweets/replies
       await sendEvent({
         type: 'log',
-        entry: { timestamp: now(), icon: '👤', message: `Menambang Data Profil @${username}...`, type: 'info' }
+        entry: { timestamp: now(), icon: '👤', message: `Memuat data profil @${username}...`, type: 'info' }
       });
 
       // Try to get user timeline data using syndication API
@@ -122,7 +122,7 @@ export async function onRequestGet(context) {
 
           await sendEvent({
             type: 'log',
-            entry: { timestamp: now(), icon: '✅', message: `Profil @${screenName} berhasil ditambang.`, type: 'success' }
+            entry: { timestamp: now(), icon: '✅', message: `Profil @${screenName} berhasil dimuat.`, type: 'success' }
           });
 
           // Parse timeline data to find reply parent tweet IDs
@@ -159,7 +159,7 @@ export async function onRequestGet(context) {
           for (const author of Array.from(allAuthors).slice(0, 8)) {
             await sendEvent({
               type: 'log',
-              entry: { timestamp: now(), icon: '📌', message: `Lapak @${author} ditemukan.`, type: 'info' }
+              entry: { timestamp: now(), icon: '📌', message: `Thread @${author} ditemukan.`, type: 'info' }
             });
             replyThreads.push({ authorUsername: author, tweetId: null });
           }
@@ -203,7 +203,7 @@ export async function onRequestGet(context) {
           entry: {
             timestamp: now(),
             icon: '📊',
-            message: `Verifikasi Visibilitas di ${replyThreads.length} Lapak Orang (Paralel)...`,
+            message: `Memeriksa visibilitas di ${replyThreads.length} thread (paralel)...`,
             type: 'info'
           }
         });
