@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, HelpCircle, Download, Share2 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
-import type { CheckResult, TestType } from '../types';
+import type { CheckResult, TestType, ForensicResult } from '../types';
 import { TEST_DESCRIPTIONS } from '../types';
 
 interface StatusCardProps {
   result: CheckResult;
+  forensicResult?: ForensicResult | null;
 }
 
 const methodLabels: Record<TestType, string> = {
@@ -46,7 +47,7 @@ const StatusRow: React.FC<{ type: TestType; passed: boolean }> = ({ type, passed
   );
 };
 
-export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
+export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -59,8 +60,33 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
       const originalTransform = cardRef.current.style.transform;
       cardRef.current.style.transform = 'none';
 
-      // Delay slightly to ensure images are fully rendered
-      await new Promise(r => setTimeout(r, 100));
+      // Convert cross-origin images to inline base64 data URLs before export
+      // html-to-image cannot draw cross-origin images onto canvas (CORS security)
+      const images = cardRef.current.querySelectorAll('img');
+      const originalSrcs: { img: HTMLImageElement; src: string }[] = [];
+
+      for (const img of images) {
+        if (img.src && !img.src.startsWith('data:')) {
+          try {
+            const response = await fetch(img.src);
+            const blob = await response.blob();
+            const dataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            originalSrcs.push({ img, src: img.src });
+            img.src = dataUrl;
+          } catch (e) {
+            // If fetch fails (CORS), hide the image during export
+            originalSrcs.push({ img, src: img.src });
+            img.style.display = 'none';
+          }
+        }
+      }
+
+      // Delay slightly to ensure DOM is updated with new data URLs
+      await new Promise(r => setTimeout(r, 200));
 
       const dataUrl = await htmlToImage.toPng(cardRef.current, {
         pixelRatio: 2,
@@ -78,6 +104,11 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
         }
       });
       
+      // Restore original image sources
+      for (const { img, src } of originalSrcs) {
+        img.src = src;
+        img.style.display = '';
+      }
       cardRef.current.style.transform = originalTransform;
       
       const link = document.createElement('a');
@@ -108,7 +139,16 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
     );
   }
 
-  const allClear = Object.values(result.tests).every(v => v);
+  // Determine ghost ban status: prefer forensic result if available
+  const ghostBanPassed = forensicResult
+    ? forensicResult.ghostBanVerified
+    : result.tests.ghostBan;
+  
+  const effectiveTests = {
+    ...result.tests,
+    ghostBan: ghostBanPassed,
+  };
+  const allClear = Object.values(effectiveTests).every(v => v);
 
   return (
     <div ref={cardRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 transition-colors flex flex-col relative overflow-hidden">
@@ -117,13 +157,21 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
           
           <div className="flex items-center gap-4 w-full md:w-auto flex-1 min-w-0">
             <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm relative">
-              {result.profileImageUrl && !imageError ? (
+              {!imageError ? (
                 <img 
-                  crossOrigin="anonymous" 
-                  src={result.profileImageUrl} 
+                  src={result.profileImageUrl || `https://unavatar.io/twitter/${result.username}`} 
                   alt={result.username} 
                   className="w-full h-full object-cover" 
-                  onError={() => setImageError(true)}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    // Fallback chain: try unavatar if current source fails
+                    if (!img.src.includes('unavatar.io')) {
+                      img.src = `https://unavatar.io/twitter/${result.username}`;
+                    } else {
+                      setImageError(true);
+                    }
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400 font-bold text-xl uppercase">
@@ -183,29 +231,16 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result }) => {
       </div>
       
       <div className="p-4 sm:p-6 flex-1">
-        <StatusRow type="searchSuggestion" passed={result.tests.searchSuggestion} />
-        <StatusRow type="searchBan" passed={result.tests.searchBan} />
-        <StatusRow type="ghostBan" passed={result.tests.ghostBan} />
+        <StatusRow type="searchSuggestion" passed={effectiveTests.searchSuggestion} />
+        <StatusRow type="searchBan" passed={effectiveTests.searchBan} />
+        <StatusRow type="ghostBan" passed={effectiveTests.ghostBan} />
+        {forensicResult && (
+          <div className="text-xs text-indigo-500 dark:text-indigo-400 mt-1 mb-2 pl-8 font-medium">
+            ✓ Ghost Ban diverifikasi via {forensicResult.totalChecked} visibility check (Deep Scan)
+          </div>
+        )}
 
-        {/* Risk Factors Section */}
-        <div className="mt-5 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
-          <div className="bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-900/20 px-4 py-2.5 flex items-center gap-2">
-            <h4 className="font-semibold text-amber-800 dark:text-amber-500 text-sm">⚠️ Risk Factors Detected</h4>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4">
-            {allClear ? (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                No abnormal activity detected in the past 24h.
-              </p>
-            ) : (
-              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2 list-disc pl-4 marker:text-gray-400">
-                <li>High reply frequency in short intervals</li>
-                <li>Recent mass following activity</li>
-                <li>Repetitive tweet patterns</li>
-              </ul>
-            )}
-          </div>
-        </div>
+
       </div>
       
       {/* Actions and Footer (Action buttons are placed last on mobile for very bottom positioning) */}

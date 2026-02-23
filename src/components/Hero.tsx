@@ -4,9 +4,10 @@ import { Loader2, AtSign } from 'lucide-react';
 interface HeroProps {
   onCheck: (username: string) => void;
   isLoading: boolean;
+  visitorCount?: number | null;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onCheck, isLoading }) => {
+export const Hero: React.FC<HeroProps> = ({ onCheck, isLoading, visitorCount }) => {
   const [username, setUsername] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
@@ -22,9 +23,14 @@ export const Hero: React.FC<HeroProps> = ({ onCheck, isLoading }) => {
     e.preventDefault();
     if (username.trim() && cooldown === 0) {
       onCheck(username.trim());
-      setCooldown(5); // 5 second cooldown between requests
+      setCooldown(5);
     }
   };
+
+  // Format the count label
+  const countLabel = visitorCount && visitorCount > 0
+    ? `${visitorCount.toLocaleString()} accounts checked`
+    : 'Over 1,000 accounts checked';
 
   return (
     <div className="py-20 px-4 text-center">
@@ -73,7 +79,7 @@ export const Hero: React.FC<HeroProps> = ({ onCheck, isLoading }) => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
           </span>
-          Over 1,000 accounts checked
+          {countLabel}
         </div>
       </div>
     </div>

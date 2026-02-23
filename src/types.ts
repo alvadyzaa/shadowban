@@ -30,3 +30,28 @@ export const TEST_DESCRIPTIONS: Record<TestType, { title: string; description: s
     description: "Whether your replies are hidden behind a 'Show more' button or invisible."
   }
 };
+
+// --- Forensic Audit Types ---
+
+export interface AuditLogEntry {
+  timestamp: string;
+  icon: string;
+  message: string;
+  type: 'info' | 'success' | 'error' | 'warning';
+}
+
+export interface ForensicThread {
+  authorUsername: string;
+  tweetId: string;
+  visible: boolean | null; // null = couldn't check
+  tweetPreview?: string;
+  threadUrl?: string;
+}
+
+export interface ForensicResult {
+  logs: AuditLogEntry[];
+  threads: ForensicThread[];
+  ghostBanVerified: boolean; // true = no ghost ban confirmed via threads
+  totalChecked: number;
+  totalVisible: number;
+}
