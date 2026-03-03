@@ -74,10 +74,15 @@
     }
 
     // Open the ad link in a new tab
-    function openAdInNewTab(ad) {
+    // preOpenedWin: if provided, reuse this pre-opened window (for in-app browsers)
+    function openAdInNewTab(ad, preOpenedWin) {
         const links = ad.links || (ad.link ? [{ url: ad.link, weight: 100 }] : []);
         const url = getWeightedLink(links);
-        if (!url) return;
+        if (!url) {
+            // Close the blank window if we have nothing to show
+            if (preOpenedWin && !preOpenedWin.closed) preOpenedWin.close();
+            return;
+        }
 
         // Track impression & last_shown
         const id = ad.id;
@@ -85,17 +90,21 @@
         let imp = parseInt(localStorage.getItem(`ad_${id}_impressions`) || '0', 10);
         localStorage.setItem(`ad_${id}_impressions`, imp + 1);
 
-        // Open new tab
-        const newWin = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!newWin) {
-            // Fallback if popup blocker intercepts
-            const a = document.createElement('a');
-            a.href = url;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        // Use the pre-opened window (if any) or open a new one
+        if (preOpenedWin && !preOpenedWin.closed) {
+            preOpenedWin.location.href = url;
+        } else {
+            const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!newWin) {
+                // Fallback if popup blocker intercepts
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
         }
 
         // Mark as triggered for this session so we don't fire again
@@ -135,9 +144,14 @@
     }
 
     // Fetch config and pick one matching ad to show
-    async function fetchAndTrigger() {
+    // preOpenedWin: synchronously pre-opened blank tab (keeps user-gesture context
+    //               for in-app browsers like Twitter, Instagram, TikTok)
+    async function fetchAndTrigger(preOpenedWin) {
         // Don't fire more than once per page load
-        if (sessionStorage.getItem(STORAGE_KEY_TRIGGERED)) return;
+        if (sessionStorage.getItem(STORAGE_KEY_TRIGGERED)) {
+            if (preOpenedWin && !preOpenedWin.closed) preOpenedWin.close();
+            return;
+        }
         sessionStorage.setItem(STORAGE_KEY_TRIGGERED, 'true'); // lock immediately
 
         try {
@@ -170,16 +184,18 @@
             validAds = validAds.filter(passesFrequencyRules);
 
             if (validAds.length === 0) {
-                sessionStorage.removeItem(STORAGE_KEY_TRIGGERED); // allow retry next session
+                sessionStorage.removeItem(STORAGE_KEY_TRIGGERED);
+                if (preOpenedWin && !preOpenedWin.closed) preOpenedWin.close();
                 return;
             }
 
             // Pick a random matching ad
             const ad = validAds[Math.floor(Math.random() * validAds.length)];
-            openAdInNewTab(ad);
+            openAdInNewTab(ad, preOpenedWin);
 
         } catch (e) {
             sessionStorage.removeItem(STORAGE_KEY_TRIGGERED);
+            if (preOpenedWin && !preOpenedWin.closed) preOpenedWin.close();
         }
     }
 
@@ -195,7 +211,15 @@
         const threshold = parseInt(scriptTag ? (scriptTag.getAttribute('data-trigger') || '3') : '3', 10);
 
         if (count >= threshold) {
-            fetchAndTrigger();
+            // ⚡ Pre-open blank window SYNCHRONOUSLY while we still have user-gesture context.
+            // This is critical for in-app browsers (Twitter, Instagram, TikTok) that block
+            // window.open() called from async/Promise callbacks.
+            let preOpenedWin = null;
+            try {
+                preOpenedWin = window.open('', '_blank', 'noopener');
+            } catch(e) { /* some browsers may still block, handled in fetchAndTrigger */ }
+
+            fetchAndTrigger(preOpenedWin);
         }
     }
 
