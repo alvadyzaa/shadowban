@@ -42,38 +42,26 @@ export async function onRequestPost(context) {
     const screenName = data.profile.screen_name || username;
 
     // 2. Fallback chain for followers/following: vxtwitter -> yuzurisa profile -> 0
-    let profileImageUrl = `https://unavatar.io/twitter/${screenName}`;
+    let profileImageUrl = data.profile.profile_image_url_https 
+      ? data.profile.profile_image_url_https.replace('_normal', '_400x400')
+      : `https://unavatar.io/twitter/${screenName}`;
     let followersCount = data.profile.followers_count || 0;
     let followingCount = data.profile.friends_count || data.profile.following_count || 0;
-    let displayName = screenName;
+    let displayName = data.profile.name || screenName;
     
     try {
-      const vxRes = await fetch(`https://api.vxtwitter.com/${screenName}/status/1`, { headers });
-      if (vxRes.ok) {
-        const vxData = await vxRes.json();
-        if (vxData.user_profile_image_url) {
-          profileImageUrl = vxData.user_profile_image_url.replace('_normal', '_400x400');
-        }
-        if (vxData.likes > 0 || vxData.replies > 0) {
-          // Only trust vxtwitter stats if it returned valid tweet data
-          // Sometimes the user endpoint gives stale data
-        }
-      }
-      // Try the user info endpoint as well
+      // Try the user info endpoint to get the most up-to-date stats if possible
       const vxUserRes = await fetch(`https://api.vxtwitter.com/${screenName}`, { headers });
       if (vxUserRes.ok) {
         const vxUserData = await vxUserRes.json();
         if (vxUserData.name) {
           displayName = vxUserData.name;
         }
-        if (vxUserData.followers_count && vxUserData.followers_count > 0) {
+        if (vxUserData.followers_count !== undefined && vxUserData.followers_count > 0) {
           followersCount = vxUserData.followers_count;
         }
-        if (vxUserData.following_count && vxUserData.following_count > 0) {
+        if (vxUserData.following_count !== undefined && vxUserData.following_count > 0) {
           followingCount = vxUserData.following_count;
-        }
-        if (vxUserData.profile_image_url) {
-          profileImageUrl = vxUserData.profile_image_url.replace('_normal', '_400x400');
         }
       }
     } catch(e) {
@@ -82,7 +70,9 @@ export async function onRequestPost(context) {
 
     // 3. Proxy image to Base64 to avoid cross-origin canvas tainting on frontend
     try {
-      const imgRes = await fetch(profileImageUrl, { headers });
+      const bustUrl = new URL(profileImageUrl);
+      bustUrl.searchParams.append('cb', Date.now().toString());
+      const imgRes = await fetch(bustUrl.toString(), { headers });
       if (imgRes.ok) {
         const arrayBuffer = await imgRes.arrayBuffer();
         let binary = '';

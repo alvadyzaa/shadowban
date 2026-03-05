@@ -19,10 +19,12 @@ export const checkShadowbanReal = async (username: string): Promise<CheckResult>
       
       const tests = data.tests || {};
       const screenName = data.profile.screen_name || username;
-      let profileImageUrl = `https://unavatar.io/twitter/${screenName}`;
+      const profileImageUrl = data.profile.profile_image_url_https 
+        ? data.profile.profile_image_url_https.replace('_normal', '_400x400')
+        : `https://unavatar.io/twitter/${screenName}`;
       let followersCount = data.profile.followers_count || 0;
       let followingCount = data.profile.friends_count || data.profile.following_count || 0;
-      let displayName = screenName;
+      let displayName = data.profile.name || screenName;
       
       try {
         const vxRes = await fetch(`https://api.vxtwitter.com/${screenName}`);
@@ -31,17 +33,14 @@ export const checkShadowbanReal = async (username: string): Promise<CheckResult>
            if (vxData.name) {
              displayName = vxData.name;
            }
-           if (vxData.profile_image_url) {
-             profileImageUrl = vxData.profile_image_url.replace('_normal', '_400x400');
-           }
-           if (vxData.followers_count && vxData.followers_count > 0) {
+           if (vxData.followers_count !== undefined && vxData.followers_count > 0) {
              followersCount = vxData.followers_count;
            }
-           if (vxData.following_count && vxData.following_count > 0) {
+           if (vxData.following_count !== undefined && vxData.following_count > 0) {
              followingCount = vxData.following_count;
            }
         }
-      } catch (e) {
+      } catch {
         console.warn('vxtwitter fetch failed, using yuzurisa fallback');
       }
 
@@ -144,13 +143,14 @@ const runForensicAuditLocal = async (
     log('🔍', 'Memeriksa Search Ban + Suggestion Ban...');
     await delay(200);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let yuzuData: any = null;
     try {
       const yuzuRes = await fetch(`https://shadowban-api.yuzurisa.com/${username}`);
       if (yuzuRes.ok) {
         yuzuData = await yuzuRes.json();
       }
-    } catch (e) {
+    } catch {
       log('⚠️', 'Gagal mengambil data dari API utama', 'warning');
     }
 
@@ -177,7 +177,7 @@ const runForensicAuditLocal = async (
     // Try to get additional profile data
     try {
       await fetch(`https://api.vxtwitter.com/${screenName}`);
-    } catch (e) {
+    } catch {
       // ignore — vxtwitter is optional
     }
 

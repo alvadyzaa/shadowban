@@ -33,7 +33,7 @@ function App() {
     if (saved) {
       try {
         setRecentChecks(JSON.parse(saved));
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
