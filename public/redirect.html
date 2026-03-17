@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mengarahkan...</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f5f7fb;
+      color: #111827;
+    }
+
+    main {
+      width: min(92vw, 420px);
+      padding: 28px 24px;
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.5;
+      color: #4b5563;
+      word-break: break-word;
+    }
+
+    a {
+      color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sedang mengarahkan</h1>
+    <p id="status">Mohon tunggu sebentar...</p>
+  </main>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const CONFIG_BUILD_VERSION = '20260317-global-publish-1';
+      const CONFIG_URL = params.get('config') || '';
+      const STATS_URL = params.get('stats') || '';
+      const FALLBACK_CONFIG_URL = new URL('ads-config.json', window.location.href).toString();
+      const CONFIG_CACHE_KEY = `aff_config_cache_${CONFIG_BUILD_VERSION}`;
+      const CURRENT_HOST = (params.get('host') || '').trim();
+      const SITE_ID = (params.get('site') || '').trim();
+      const INTERACTION_COUNT = parseInt(params.get('count') || '0', 10);
+      const PRESET_AD_ID = (params.get('ad') || '').trim();
+      const PRESET_TARGET = params.get('target') || '';
+      const PRESET_TRACKED = params.get('tracked') === '1';
+      const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
+      const CONFIG_FETCH_TIMEOUT_MS = 5000;
+      const STATS_FETCH_TIMEOUT_MS = 1500;
+      const statusEl = document.getElementById('status');
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function getJakartaDateParts(date) {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: JAKARTA_TIME_ZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          hourCycle: 'h23'
+        }).formatToParts(date || new Date());
+
+        return parts.reduce((acc, part) => {
+          if (part.type !== 'literal') acc[part.type] = part.value;
+          return acc;
+        }, {});
+      }
+
+      function fetchWithTimeout(url, options, timeoutMs) {
+        const timeout = Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : CONFIG_FETCH_TIMEOUT_MS;
+        if (typeof AbortController !== 'function') {
+          return Promise.race([
+            fetch(url, options),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
+          ]);
+        }
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeout);
+        const requestOptions = Object.assign({}, options, { signal: controller.signal });
+
+        return fetch(url, requestOptions).finally(() => {
+          clearTimeout(timer);
+        });
+      }
+
+      function appendCacheBuster(url, version) {
+        const separator = url.indexOf('?') >= 0 ? '&' : '?';
+        return `${url}${separator}v=${encodeURIComponent(version || CONFIG_BUILD_VERSION)}-${Date.now()}`;
+      }
+
+      function buildStatsUrl(path) {
+        const base = String(STATS_URL || '').trim().replace(/\/+$/, '');
+        return base ? base + path : '';
+      }
+
+      function getPrimaryConfigUrl() {
+        return CONFIG_URL || buildStatsUrl('/config') || FALLBACK_CONFIG_URL;
+      }
+
+      function persistConfig(data) {
+        try {
+          localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+            fetchedAt: Date.now(),
+            data: data
+          }));
+        } catch (e) {}
+      }
+
+      function readPersistedConfig() {
+        try {
+          const raw = localStorage.getItem(CONFIG_CACHE_KEY);
+          if (!raw) return null;
+
+          const parsed = JSON.parse(raw);
+          return parsed && parsed.data ? parsed.data : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      async function loadConfig() {
+        const remoteUrl = appendCacheBuster(getPrimaryConfigUrl());
+        const fallbackUrl = appendCacheBuster(FALLBACK_CONFIG_URL);
+
+        if (remoteUrl) {
+          try {
+            const res = await fetchWithTimeout(remoteUrl, { cache: 'no-store' }, CONFIG_FETCH_TIMEOUT_MS);
+            if (!res.ok) throw new Error('Config fetch failed');
+
+            const data = await res.json();
+            if (data && typeof data === 'object') {
+              persistConfig(data);
+              return data;
+            }
+          } catch (e) {}
+        }
+
+        const persisted = readPersistedConfig();
+        if (persisted) return persisted;
+
+        try {
+          const res = await fetchWithTimeout(fallbackUrl, { cache: 'no-store' }, CONFIG_FETCH_TIMEOUT_MS);
+          if (!res.ok) throw new Error('Config fetch failed');
+
+          const data = await res.json();
+          if (data && typeof data === 'object') {
+            return data;
+          }
+        } catch (e) {}
+
+        throw new Error('Config unavailable');
+      }
+
+      function getSiteKeys() {
+        const keys = [CURRENT_HOST];
+        if (SITE_ID) keys.push(SITE_ID);
+        return Array.from(new Set(keys.filter(Boolean)));
+      }
+
+      function matchesTarget(currentKeys, target) {
+        if (!target) return false;
+        return currentKeys.some(key => key === target || key.endsWith('.' + target));
+      }
+
+      function passesSchedule(ad) {
+        const sched = ad.schedule || {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (sched.start_date && today < new Date(sched.start_date)) return false;
+        if (sched.end_date && today > new Date(sched.end_date)) return false;
+        return true;
+      }
+
+      function getAdTriggerCount(ad) {
+        const value = parseInt(ad && ad.trigger_count, 10);
+        return Number.isFinite(value) && value > 0 ? value : 1;
+      }
+
+      function selectAd(data) {
+        const currentKeys = getSiteKeys();
+        const validAds = (data && data.ads ? data.ads : []).filter(ad => {
+          const status = ad.status || (ad.active ? 'active' : 'paused');
+          if (status !== 'active') return false;
+
+          const targets = ad.target_websites ||
+            (ad.targets ? ad.targets.split(',').map(t => t.trim()) : []);
+          if (targets.length && !targets.some(target => matchesTarget(currentKeys, target))) {
+            return false;
+          }
+
+          if (!passesSchedule(ad)) return false;
+          if (Number.isFinite(INTERACTION_COUNT) && INTERACTION_COUNT < getAdTriggerCount(ad)) return false;
+
+          return true;
+        });
+
+        if (validAds.length === 0) return null;
+
+        const pool = [];
+        for (const ad of validAds) {
+          const links = ad.links || (ad.link ? [{ url: ad.link, weight: 100 }] : []);
+          for (const link of links) {
+            if (link.url) {
+              pool.push({
+                adId: ad.id,
+                url: link.url,
+                weight: link.weight || 1
+              });
+            }
+          }
+        }
+
+        if (pool.length === 0) return null;
+
+        const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
+        let rand = Math.random() * totalWeight;
+        let chosen = pool[0];
+
+        for (const entry of pool) {
+          if (rand < entry.weight) {
+            chosen = entry;
+            break;
+          }
+          rand -= entry.weight;
+        }
+
+        return chosen;
+      }
+
+      function trackCentralClick(adId) {
+        const trackUrl = buildStatsUrl('/track');
+        if (!trackUrl || !adId) return Promise.resolve();
+
+        try {
+          const ua = navigator.userAgent || '';
+          const device = /Mobi|Android|iPhone|iPad|iPod/i.test(ua) ? 'mobile' : 'desktop';
+          const region = (function() {
+            try {
+              return Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/\//g, '_');
+            } catch (e) {
+              return 'unknown';
+            }
+          })();
+          const payload = {
+            adId: adId,
+            site: CURRENT_HOST || window.location.hostname || 'unknown',
+            device: device,
+            region: region
+          };
+
+          return fetchWithTimeout(trackUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            keepalive: true,
+            mode: 'cors'
+          }, STATS_FETCH_TIMEOUT_MS)
+            .catch(() => {});
+        } catch (e) {
+          return Promise.resolve();
+        }
+      }
+
+      function go(target) {
+        if (!target) {
+          setStatus('Link iklan tidak tersedia.');
+          return;
+        }
+        window.location.replace(target);
+      }
+
+      function start() {
+        if (PRESET_TARGET) {
+          const tracked = PRESET_TRACKED ? Promise.resolve() : trackCentralClick(PRESET_AD_ID);
+          tracked.finally(function() {
+            go(PRESET_TARGET);
+          });
+          return;
+        }
+
+        if (!CURRENT_HOST) {
+          setStatus('Konfigurasi redirect tidak lengkap.');
+          return;
+        }
+
+        loadConfig()
+          .then(data => {
+            const selection = selectAd(data);
+            if (!selection || !selection.url) {
+              throw new Error('No ad available');
+            }
+
+            return trackCentralClick(selection.adId).finally(function() {
+              go(selection.url);
+            });
+          })
+          .catch(function() {
+            setStatus('Iklan tidak bisa dibuka. Tutup tab ini lalu coba lagi.');
+          });
+      }
+
+      start();
+    })();
+  </script>
+</body>
+</html>

@@ -230,6 +230,15 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
              </p>
           )}
         </div>
+
+        {!forensicResult && (
+          <div className="mt-3 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 shadow-sm">
+            <h4 className="font-semibold text-foreground mb-1.5 text-sm">Need a more accurate result?</h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Run Deep Scan after this check to verify reply visibility in more detail.
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="p-4 sm:p-6 flex-1">

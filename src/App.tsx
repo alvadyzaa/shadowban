@@ -7,6 +7,12 @@ import { EducationalSection } from './components/EducationalSection';
 import type { CheckResult, AuditLogEntry, ForensicResult, ForensicThread } from './types';
 import { checkShadowbanReal, runForensicAudit } from './services/twitterService';
 
+function notifyAdsInteraction() {
+  if (typeof window === 'undefined') return;
+  const callback = (window as typeof window & { onUserSearchPerformed?: () => void }).onUserSearchPerformed;
+  if (typeof callback === 'function') callback();
+}
+
 function App() {
   const [result, setResult] = useState<CheckResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +80,8 @@ function App() {
 
   const handleForensicAudit = useCallback(async () => {
     if (!result?.username || isForensicRunning) return;
+
+    notifyAdsInteraction();
     
     setIsForensicRunning(true);
     setForensicLogs([]);
@@ -108,7 +116,9 @@ function App() {
                    {recentChecks.map((name) => (
                      <button
                        key={name}
-                       onClick={() => handleCheck(name)}
+                       onClick={() => {
+                         handleCheck(name);
+                       }}
                        disabled={isLoading || cooldown > 0}
                        className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                      >

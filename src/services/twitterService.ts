@@ -4,65 +4,71 @@ import type { CheckResult } from '../types';
 // In a production environment, you would call your backend API which then rotates proxies
 // to scrape Twitter or uses a commercial API like ScraperAPI/BrightData.
 
+function isLocalPreviewRuntime() {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
+
+async function fetchShadowbanClientSide(username: string): Promise<CheckResult> {
+  const yuzuRes = await fetch(`https://shadowban-api.yuzurisa.com/${username}`);
+  if (!yuzuRes.ok) throw new Error('API failed');
+  const data = await yuzuRes.json();
+  
+  if (!data.profile || !data.profile.exists) {
+    return {
+       exists: false, username, tests: { searchSuggestion: false, searchBan: false, ghostBan: false }, timestamp: new Date().toISOString()
+    };
+  }
+  
+  const tests = data.tests || {};
+  const screenName = data.profile.screen_name || username;
+  const profileImageUrl = data.profile.profile_image_url_https 
+    ? data.profile.profile_image_url_https.replace('_normal', '_400x400')
+    : `https://unavatar.io/twitter/${screenName}`;
+  let followersCount = data.profile.followers_count || 0;
+  let followingCount = data.profile.friends_count || data.profile.following_count || 0;
+  let displayName = data.profile.name || screenName;
+  
+  try {
+    const vxRes = await fetch(`https://api.vxtwitter.com/${screenName}`);
+    if (vxRes.ok) {
+       const vxData = await vxRes.json();
+       if (vxData.name) {
+         displayName = vxData.name;
+       }
+       if (vxData.followers_count !== undefined && vxData.followers_count > 0) {
+         followersCount = vxData.followers_count;
+       }
+       if (vxData.following_count !== undefined && vxData.following_count > 0) {
+         followingCount = vxData.following_count;
+       }
+    }
+  } catch {
+    console.warn('vxtwitter fetch failed, using yuzurisa fallback');
+  }
+
+  return {
+    username: screenName,
+    displayName: displayName,
+    profileImageUrl: profileImageUrl,
+    followersCount,
+    followingCount,
+    isVerified: data.profile.is_blue_verified || data.profile.verified || false,
+    exists: true,
+    tests: {
+      searchSuggestion: tests.typeahead === true || tests.typeahead === '_implied_good', 
+      searchBan: tests.search === true || tests.search === '_implied_good',
+      ghostBan: tests.ghost?.ban !== true,
+    },
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export const checkShadowbanReal = async (username: string): Promise<CheckResult> => {
-  if (import.meta.env?.DEV) {
+  if (import.meta.env?.DEV || isLocalPreviewRuntime()) {
     try {
-      const yuzuRes = await fetch(`https://shadowban-api.yuzurisa.com/${username}`);
-      if (!yuzuRes.ok) throw new Error('API failed');
-      const data = await yuzuRes.json();
-      
-      if (!data.profile || !data.profile.exists) {
-        return {
-           exists: false, username, tests: { searchSuggestion: false, searchBan: false, ghostBan: false }, timestamp: new Date().toISOString()
-        };
-      }
-      
-      const tests = data.tests || {};
-      const screenName = data.profile.screen_name || username;
-      const profileImageUrl = data.profile.profile_image_url_https 
-        ? data.profile.profile_image_url_https.replace('_normal', '_400x400')
-        : `https://unavatar.io/twitter/${screenName}`;
-      let followersCount = data.profile.followers_count || 0;
-      let followingCount = data.profile.friends_count || data.profile.following_count || 0;
-      let displayName = data.profile.name || screenName;
-      
-      try {
-        const vxRes = await fetch(`https://api.vxtwitter.com/${screenName}`);
-        if (vxRes.ok) {
-           const vxData = await vxRes.json();
-           if (vxData.name) {
-             displayName = vxData.name;
-           }
-           if (vxData.followers_count !== undefined && vxData.followers_count > 0) {
-             followersCount = vxData.followers_count;
-           }
-           if (vxData.following_count !== undefined && vxData.following_count > 0) {
-             followingCount = vxData.following_count;
-           }
-        }
-      } catch {
-        console.warn('vxtwitter fetch failed, using yuzurisa fallback');
-      }
-
-      // Note: In dev mode, we skip blob proxy because pbs.twimg.com blocks CORS fetch.
-      // The <img> tag can still display cross-origin images fine.
-      // In production, the backend (shadow.js) does the base64 proxy for us.
-
-      return {
-        username: screenName,
-        displayName: displayName,
-        profileImageUrl: profileImageUrl,
-        followersCount,
-        followingCount,
-        isVerified: data.profile.is_blue_verified || data.profile.verified || false,
-        exists: true,
-        tests: {
-          searchSuggestion: tests.typeahead === true || tests.typeahead === '_implied_good', 
-          searchBan: tests.search === true || tests.search === '_implied_good',
-          ghostBan: tests.ghost?.ban !== true,
-        },
-        timestamp: new Date().toISOString(),
-      };
+      return await fetchShadowbanClientSide(username);
     } catch(err) {
       console.error(err);
       throw err;
@@ -324,7 +330,7 @@ export const runForensicAudit = (
   onLog: (entry: AuditLogEntry) => void,
   onThread: (thread: ForensicThread) => void,
 ): Promise<ForensicResult> => {
-  if (import.meta.env?.DEV) {
+  if (import.meta.env?.DEV || isLocalPreviewRuntime()) {
     return runForensicAuditLocal(username, onLog, onThread);
   }
   return runForensicAuditSSE(username, onLog, onThread);

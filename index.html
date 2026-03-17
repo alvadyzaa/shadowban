@@ -9,7 +9,18 @@
   <body class="overflow-x-hidden w-full">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Affiliate Ads Control -->
-    <script src="https://ads-3wl.pages.dev/ads-loader.js"></script>
+    <script>
+      (function () {
+        var host = window.location.hostname;
+        var isLocal = host === 'localhost' || host === '127.0.0.1';
+        var script = document.createElement('script');
+        script.src = isLocal ? '/ads-loader.js' : 'https://ads-3wl.pages.dev/ads-loader.js';
+        script.setAttribute('data-site', 'shadowbanchecker.pages.dev');
+        script.setAttribute('data-trigger', '1');
+        script.setAttribute('data-track-mode', 'manual');
+        script.setAttribute('data-stats-url', 'https://ads-stats-worker.derazelmiku.workers.dev');
+        document.body.appendChild(script);
+      })();
+    </script>
   </body>
 </html>

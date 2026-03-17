@@ -64,7 +64,7 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
             <div className="flex-1 text-center sm:text-left">
               <h3 className="font-bold text-foreground text-lg">Visibility Deep Scan</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Scan visibilitas reply <span className="font-semibold text-foreground">@{username}</span> secara mendalam. Lebih akurat.
+                Basic check sudah selesai. Jalankan deep scan untuk cek reply <span className="font-semibold text-foreground">@{username}</span> lebih detail dan lebih akurat.
               </p>
             </div>
             <Button
@@ -74,6 +74,9 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
               <ShieldCheck className="w-4 h-4 mr-2" />
               Run Deep Scan
             </Button>
+          </div>
+          <div className="mt-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-sm text-muted-foreground">
+            Deep scan membantu memastikan apakah reply kamu benar-benar masih terlihat oleh orang lain.
           </div>
         </Card>
       </motion.div>
