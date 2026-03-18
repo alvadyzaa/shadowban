@@ -13,7 +13,7 @@ function normalizeFiaError(bodyText, fallback) {
   }
 }
 
-async function runFiaScanInPage(page, username) {
+export async function runFiaScanInPage(page, username) {
   await page.goto(FIA_SITE_ORIGIN, { waitUntil: 'domcontentloaded' });
 
   const result = await page.evaluate(
@@ -110,32 +110,4 @@ async function runFiaScanInPage(page, username) {
   }
 
   return JSON.parse(result.checkText);
-}
-
-export async function fetchFiaDeepScanWithLocalBrowser(username, executablePath) {
-  const { chromium } = await import('playwright-core');
-  const browser = await chromium.launch({
-    executablePath,
-    headless: true,
-    args: ['--disable-dev-shm-usage', '--no-first-run', '--disable-background-networking'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    return await runFiaScanInPage(page, username);
-  } finally {
-    await browser.close();
-  }
-}
-
-export async function fetchFiaDeepScanWithCloudflareBrowser(username, browserBinding) {
-  const { launch } = await import('@cloudflare/playwright');
-  const browser = await launch(browserBinding);
-
-  try {
-    const page = await browser.newPage();
-    return await runFiaScanInPage(page, username);
-  } finally {
-    await browser.close();
-  }
 }

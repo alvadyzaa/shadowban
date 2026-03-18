@@ -1,5 +1,5 @@
 import { createLog, replayCompactForensicResult } from '../_lib/forensic.js';
-import { fetchFiaDeepScanWithCloudflareBrowser } from '../_lib/fia-browser.js';
+import { fetchFiaDeepScanWithCloudflareBrowser } from '../_lib/fia-browser-cloudflare.js';
 import { fetchIndependentDeepScan } from '../_lib/forensic-fallback.js';
 import { streamForensicAudit } from '../_lib/forensic.js';
 import { DEFAULT_CACHE_TTL_SECONDS, getCachedJson, normalizeUsername, setCachedJson } from '../_lib/cache.js';

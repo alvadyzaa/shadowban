@@ -9,7 +9,7 @@ import {
   normalizeUsername,
   setCachedJson,
 } from './functions/_lib/cache.js'
-import { fetchFiaDeepScanWithLocalBrowser } from './functions/_lib/fia-browser.js'
+import { fetchFiaDeepScanWithLocalBrowser } from './functions/_lib/fia-browser-local.js'
 import { fetchIndependentDeepScan } from './functions/_lib/forensic-fallback.js'
 import { consumeDeepScanRateLimit } from './functions/_lib/rate-limit.js'
 import { replayCompactForensicResult, streamForensicAudit } from './functions/_lib/forensic.js'
