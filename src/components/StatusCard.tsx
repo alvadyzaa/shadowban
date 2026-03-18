@@ -18,6 +18,14 @@ const methodLabels: Record<TestType, string> = {
   ghostBan: "Checked via reply ranking test"
 };
 
+const summaryBadgeClass = {
+  healthy: 'bg-green-500/10 text-green-600 hover:bg-green-500/20 border-transparent',
+  warning: 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-transparent',
+  danger: 'bg-red-500/10 text-red-600 hover:bg-red-500/20 border-transparent',
+} as const;
+
+type SummaryTone = keyof typeof summaryBadgeClass;
+
 const StatusRow: React.FC<{ type: TestType; passed: boolean }> = ({ type, passed }) => {
   const info = TEST_DESCRIPTIONS[type];
   
@@ -153,6 +161,34 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
     ghostBan: ghostBanPassed,
   };
   const allClear = Object.values(effectiveTests).every(v => v);
+  const hasDeepScan = Boolean(forensicResult);
+  const recentPostTone: SummaryTone = forensicResult
+    ? forensicResult.totalChecked === 0
+      ? 'warning'
+      : forensicResult.totalVisible === forensicResult.totalChecked
+      ? 'healthy'
+      : 'danger'
+    : 'warning';
+  const replyTone: SummaryTone = effectiveTests.ghostBan ? 'healthy' : 'danger';
+  const searchTone: SummaryTone = effectiveTests.searchBan ? 'healthy' : 'danger';
+  const suggestionTone: SummaryTone = effectiveTests.searchSuggestion ? 'healthy' : 'danger';
+  const verdictTitle = allClear ? 'Visibility looks healthy' : 'Visibility issues detected';
+  const verdictDescription = hasDeepScan
+    ? allClear
+      ? `Search, reply visibility, dan ${forensicResult?.totalChecked ?? 0} recent-post sample checks terlihat aman.`
+      : `Ada sinyal masalah pada search, reply visibility, atau recent-post sample visibility yang perlu diperhatikan.`
+    : allClear
+    ? 'Basic check terlihat aman. Jalankan deep scan kalau mau verifikasi recent-post sample visibility juga.'
+    : 'Basic check mendeteksi potensi pembatasan. Deep scan bisa bantu memastikan seberapa luas dampaknya lewat sampel post terbaru.';
+  const shareText = `✅ ShadowCheck Results for @${result.username}\n\nSearch Suggestion: ${
+    effectiveTests.searchSuggestion ? 'Healthy' : 'Banned'
+  }\nSearch Ban: ${effectiveTests.searchBan ? 'Healthy' : 'Banned'}\nGhost Ban: ${
+    effectiveTests.ghostBan ? 'Healthy' : 'Banned'
+  }${
+    forensicResult
+      ? `\nRecent Posts: ${forensicResult.totalVisible}/${forensicResult.totalChecked} visible`
+      : ''
+  }\n\nCheck yours here: https://shadowcheck.pages.dev/`;
 
   return (
     <motion.div 
@@ -227,15 +263,73 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
           ) : (
              <p className="text-sm text-muted-foreground leading-relaxed">
                Your replies may be limited in visibility. This can affect engagement from non-followers.
-             </p>
+            </p>
           )}
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-border/60 bg-background/40 p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-4">
+            <div className="min-w-0 pr-0 lg:pr-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Visibility Verdict
+              </p>
+              <h4 className="mt-1 text-lg font-semibold text-foreground">{verdictTitle}</h4>
+              <p className="mt-1 max-w-[46ch] text-sm leading-relaxed text-muted-foreground">
+                {verdictDescription}
+              </p>
+            </div>
+            <Badge className={`${allClear ? summaryBadgeClass.healthy : summaryBadgeClass.danger} self-start whitespace-nowrap px-3 py-1.5 text-xs leading-none lg:mt-1`}>
+              {allClear ? 'Overall healthy' : 'Needs review'}
+            </Badge>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Search</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-foreground">Public search visibility</span>
+                <Badge className={`${summaryBadgeClass[searchTone]} px-2 py-0.5 text-[10px]`}>
+                  {effectiveTests.searchBan ? 'OK' : 'Limited'}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Replies</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-foreground">Reply visibility</span>
+                <Badge className={`${summaryBadgeClass[replyTone]} px-2 py-0.5 text-[10px]`}>
+                  {effectiveTests.ghostBan ? 'OK' : 'Limited'}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Suggestion</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm font-medium text-foreground">Autocomplete index</span>
+                <Badge className={`${summaryBadgeClass[suggestionTone]} px-2 py-0.5 text-[10px]`}>
+                  {effectiveTests.searchSuggestion ? 'Indexed' : 'Hidden'}
+                </Badge>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Recent Posts</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="min-w-0 text-sm font-medium text-foreground">
+                  {forensicResult ? `${forensicResult.totalVisible}/${forensicResult.totalChecked} visible` : 'Deep scan not run yet'}
+                </span>
+                <Badge className={`${summaryBadgeClass[recentPostTone]} px-2 py-0.5 text-[10px]`}>
+                  {forensicResult ? (forensicResult.totalVisible === forensicResult.totalChecked ? 'Verified' : 'Mixed') : 'Pending'}
+                </Badge>
+              </div>
+            </div>
+          </div>
         </div>
 
         {!forensicResult && (
           <div className="mt-3 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 shadow-sm">
             <h4 className="font-semibold text-foreground mb-1.5 text-sm">Need a more accurate result?</h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Run Deep Scan after this check to verify reply visibility in more detail.
+              Run Deep Scan after this check to verify reply visibility and a small recent-post sample in more detail.
             </p>
           </div>
         )}
@@ -247,7 +341,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
         <StatusRow type="ghostBan" passed={effectiveTests.ghostBan} />
         {forensicResult && (
           <div className="text-xs text-indigo-500 dark:text-indigo-400 mt-1 mb-2 pl-8 font-medium">
-            ✓ Ghost Ban diverifikasi via {forensicResult.totalChecked} visibility check (Deep Scan)
+            ✓ Deep Scan selesai dengan {forensicResult.totalChecked} recent-post sample check
           </div>
         )}
 
@@ -261,7 +355,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 export-hide w-full md:w-auto">
           <a
-            href={`https://x.com/intent/tweet?text=${encodeURIComponent(`✅ ShadowCheck Results for @${result.username}\n\nSearch Suggestion: ${result.tests.searchSuggestion ? 'Healthy' : 'Banned'}\nSearch Ban: ${result.tests.searchBan ? 'Healthy' : 'Banned'}\nGhost Ban: ${result.tests.ghostBan ? 'Healthy' : 'Banned'}\n\nCheck yours here: https://shadowcheck.pages.dev/`)}`}
+            href={`https://x.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full md:w-auto"

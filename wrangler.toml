@@ -1,0 +1,14 @@
+name = "shadowcheck"
+compatibility_date = "2026-03-19"
+pages_build_output_dir = "./dist"
+compatibility_flags = ["nodejs_compat"]
+
+[browser]
+binding = "BROWSER"
+
+# Add this KV namespace in Cloudflare before enabling persistent
+# server-side rate limits across all isolates/instances:
+# [[kv_namespaces]]
+# binding = "RATE_LIMITS"
+# id = "your_rate_limits_namespace_id"
+# preview_id = "your_rate_limits_preview_id"

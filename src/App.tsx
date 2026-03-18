@@ -7,10 +7,60 @@ import { EducationalSection } from './components/EducationalSection';
 import type { CheckResult, AuditLogEntry, ForensicResult, ForensicThread } from './types';
 import { checkShadowbanReal, runForensicAudit } from './services/twitterService';
 
+const DEEP_SCAN_DAILY_LIMIT = 5;
+const DEEP_SCAN_USAGE_STORAGE_KEY = 'shadowDeepScanUsage-v2';
+
 function notifyAdsInteraction() {
   if (typeof window === 'undefined') return;
   const callback = (window as typeof window & { onUserSearchPerformed?: () => void }).onUserSearchPerformed;
   if (typeof callback === 'function') callback();
+}
+
+function getLocalDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function readDeepScanUsage() {
+  const today = getLocalDayKey();
+
+  if (typeof window === 'undefined') {
+    return { day: today, count: 0 };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(DEEP_SCAN_USAGE_STORAGE_KEY);
+
+    if (!raw) {
+      return { day: today, count: 0 };
+    }
+
+    const parsed = JSON.parse(raw) as { day?: string; count?: number };
+    if (parsed.day !== today) {
+      return { day: today, count: 0 };
+    }
+
+    return {
+      day: today,
+      count: Number.isFinite(parsed.count) ? Math.max(0, parsed.count as number) : 0,
+    };
+  } catch {
+    return { day: today, count: 0 };
+  }
+}
+
+function writeDeepScanUsage(count: number) {
+  if (typeof window === 'undefined') return;
+
+  window.localStorage.setItem(
+    DEEP_SCAN_USAGE_STORAGE_KEY,
+    JSON.stringify({
+      day: getLocalDayKey(),
+      count,
+    }),
+  );
 }
 
 function App() {
@@ -19,6 +69,7 @@ function App() {
   const [recentChecks, setRecentChecks] = useState<string[]>([]);
   const [cooldown, setCooldown] = useState(0);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [deepScanCount, setDeepScanCount] = useState(0);
 
   // Forensic audit state
   const [forensicLogs, setForensicLogs] = useState<AuditLogEntry[]>([]);
@@ -43,7 +94,17 @@ function App() {
         // ignore
       }
     }
+
+    const usage = readDeepScanUsage();
+    setDeepScanCount(usage.count);
   }, []);
+
+  useEffect(() => {
+    writeDeepScanUsage(deepScanCount);
+  }, [deepScanCount]);
+
+  const deepScanRemaining = Math.max(0, DEEP_SCAN_DAILY_LIMIT - deepScanCount);
+  const deepScanLimitReached = deepScanRemaining <= 0;
 
   const handleCheck = async (username: string) => {
     if (isLoading || cooldown > 0) return;
@@ -79,11 +140,12 @@ function App() {
   };
 
   const handleForensicAudit = useCallback(async () => {
-    if (!result?.username || isForensicRunning) return;
+    if (!result?.username || isForensicRunning || deepScanLimitReached) return;
 
     notifyAdsInteraction();
     
     setIsForensicRunning(true);
+    setDeepScanCount((count) => count + 1);
     setForensicLogs([]);
     setForensicThreads([]);
     setForensicResult(null);
@@ -100,7 +162,7 @@ function App() {
     } finally {
       setIsForensicRunning(false);
     }
-  }, [result?.username, isForensicRunning]);
+  }, [result?.username, isForensicRunning, deepScanLimitReached]);
 
   return (
     <Layout onVisitorCountLoaded={(count) => setVisitorCount(count)}>
@@ -141,6 +203,9 @@ function App() {
                 logs={forensicLogs}
                 threads={forensicThreads}
                 result={forensicResult}
+                deepScanRemaining={deepScanRemaining}
+                deepScanDailyLimit={DEEP_SCAN_DAILY_LIMIT}
+                dailyLimitReached={deepScanLimitReached}
                 onStart={handleForensicAudit}
               />
             )}

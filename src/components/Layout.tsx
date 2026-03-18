@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Info, AlertTriangle, X, Moon, Sun, Heart, Wrench, ExternalLink } from 'lucide-react';
+import { Info, AlertTriangle, X, Moon, Sun, Heart, Wrench, ExternalLink, Menu } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from './ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onVisitorCountLoaded }
   const [isTipsOpen, setIsTipsOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
   const { theme, toggleTheme } = useTheme();
@@ -31,9 +32,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onVisitorCountLoaded }
       return;
     }
 
-    const fetchUrl = import.meta.env?.DEV 
-      ? 'https://api.counterapi.dev/v1/shadowcheck/hits/up'
-      : '/api/visitor';
+    const fetchUrl = '/api/visitor';
 
     // Helper to apply fallback from localStorage if API fails
     const applyFallback = () => {
@@ -76,7 +75,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, onVisitorCountLoaded }
             <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-6 sm:h-6 fill-current text-primary" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M23.643 4.937c-.835.37-1.732.62-2.675.733.962-.576 1.7-1.49 2.048-2.578-.9.534-1.897.922-2.958 1.13-.85-.904-2.06-1.47-3.4-1.47-2.572 0-4.658 2.086-4.658 4.66 0 .364.042.718.12 1.06-3.873-.195-7.304-2.05-9.602-4.868-.4.69-.63 1.49-.63 2.342 0 1.616.823 3.043 2.072 3.878-.764-.025-1.482-.234-2.11-.583v.06c0 2.257 1.605 4.14 3.737 4.568-.392.106-.803.162-1.227.162-.3 0-.593-.028-.877-.082.593 1.85 2.313 3.198 4.352 3.234-1.595 1.25-3.604 1.995-5.786 1.995-.376 0-.747-.022-1.112-.065 2.062 1.323 4.51 2.093 7.14 2.093 8.57 0 13.255-7.098 13.255-13.254 0-.2-.005-.402-.014-.602.91-.658 1.7-1.477 2.323-2.41z"/></svg>
             <h1 className="text-lg sm:text-xl font-bold tracking-tight">ShadowCheck</h1>
           </div>
-          <nav className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-end">
+          <nav className="hidden md:flex items-center gap-1 sm:gap-2 text-xs sm:text-sm flex-wrap justify-end">
             <Button variant="ghost" size="sm" onClick={() => setIsAboutOpen(true)} className="px-2 sm:px-3 text-muted-foreground hover:text-foreground">
               <Info className="w-4 h-4 mr-1 sm:mr-1.5" /> <span className="hidden sm:inline">About</span>
             </Button>
@@ -108,7 +107,63 @@ export const Layout: React.FC<LayoutProps> = ({ children, onVisitorCountLoaded }
               {theme === 'dark' ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
             </Button>
           </nav>
+
+          <div className="md:hidden flex items-center">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label="Open menu"
+              className="h-10 w-10 rounded-full border-border bg-transparent"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5 text-muted-foreground" /> : <Menu className="h-5 w-5 text-muted-foreground" />}
+            </Button>
+          </div>
         </div>
+
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="md:hidden border-t border-border/40 bg-background/95 px-3 pb-3 pt-2"
+            >
+              <div className="container mx-auto grid grid-cols-2 gap-2">
+                <Button variant="ghost" onClick={() => { setIsAboutOpen(true); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl px-3 text-muted-foreground hover:text-foreground">
+                  <Info className="mr-2 h-4 w-4" /> About
+                </Button>
+                <Button variant="ghost" onClick={() => { setIsTipsOpen(true); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl px-3 text-muted-foreground hover:text-foreground">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 h-4 w-4"><path d="M9 21h6"></path><path d="M12 21v-4"></path><path d="M12 17c3.314 0 6-2.686 6-6s-2.686-6-6-6-6 2.686-6 6c0 1.954.939 3.69 2.398 4.81"></path></svg>
+                  Tips
+                </Button>
+                <Button variant="ghost" onClick={() => { setIsDisclaimerOpen(true); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl px-3 text-amber-600/80 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-amber-600">
+                  <AlertTriangle className="mr-2 h-4 w-4" /> Disclaimer
+                </Button>
+                <a href="https://x.com/miegrains" target="_blank" rel="noopener noreferrer" className="block">
+                  <Button variant="ghost" className="w-full justify-start rounded-xl px-3 text-muted-foreground hover:text-foreground">
+                    <svg viewBox="0 0 24 24" className="mr-2 h-4 w-4 fill-current" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    Keith
+                  </Button>
+                </a>
+                <Button variant="ghost" onClick={() => { setIsSupportOpen(true); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl px-3 text-red-500/80 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500">
+                  <Heart className="mr-2 h-4 w-4" /> Support
+                </Button>
+                <Button variant="ghost" onClick={() => { setIsToolsOpen(true); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl px-3 text-muted-foreground hover:text-foreground">
+                  <Wrench className="mr-2 h-4 w-4" /> Tools
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={toggleTheme}
+                  className="col-span-2 justify-start rounded-xl border-border bg-transparent px-3"
+                >
+                  {theme === 'dark' ? <Sun className="mr-2 h-4 w-4 text-muted-foreground" /> : <Moon className="mr-2 h-4 w-4 text-muted-foreground" />}
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <main className="flex-grow">

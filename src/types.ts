@@ -46,6 +46,9 @@ export interface ForensicThread {
   visible: boolean | null; // null = couldn't check
   tweetPreview?: string;
   threadUrl?: string;
+  postType?: string;
+  statusCode?: number;
+  statusText?: string;
 }
 
 export interface ForensicResult {
@@ -54,4 +57,8 @@ export interface ForensicResult {
   ghostBanVerified: boolean; // true = no ghost ban confirmed via threads
   totalChecked: number;
   totalVisible: number;
+  searchBanPassed?: boolean;
+  searchSuggestionPassed?: boolean;
+  replyDeboostingPassed?: boolean;
+  scanSource?: string;
 }
