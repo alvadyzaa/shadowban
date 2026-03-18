@@ -119,6 +119,9 @@ function apiDevMiddleware(): Plugin {
         const requestUrl = new URL(req.url || '', 'http://127.0.0.1/api/forensic')
         const username = normalizeUsername(requestUrl.searchParams.get('username'))
         const engine = requestUrl.searchParams.get('engine')?.trim()
+        const forceRefresh = ['1', 'true', 'yes'].includes(
+          String(requestUrl.searchParams.get('refresh') || '').toLowerCase(),
+        )
 
         if (!username) {
           res.statusCode = 400
@@ -130,7 +133,7 @@ function apiDevMiddleware(): Plugin {
         const executablePath = findLocalBrowser()
         const preferredEngine =
           engine === 'fallback' ? 'fallback' : executablePath ? 'reference' : 'fallback'
-        const cacheKey = { username, engine: preferredEngine, v: 'compact-v5' }
+        const cacheKey = { username, engine: preferredEngine, v: 'compact-v6' }
 
         res.setHeader('Content-Type', 'text/event-stream')
         res.setHeader('Cache-Control', 'no-cache')
@@ -148,7 +151,7 @@ function apiDevMiddleware(): Plugin {
               'x-forwarded-for': req.socket.remoteAddress || '127.0.0.1',
             },
           })
-          const cached = await getCachedJson('forensic', cacheKey)
+          const cached = forceRefresh ? { hit: false, data: null } : await getCachedJson('forensic', cacheKey)
 
           if (cached.hit && cached.data?.forensic) {
             await replayCompactForensicResult({

@@ -9,6 +9,9 @@ export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const username = normalizeUsername(url.searchParams.get('username'));
   const engine = url.searchParams.get('engine')?.trim();
+  const forceRefresh = ['1', 'true', 'yes'].includes(
+    String(url.searchParams.get('refresh') || '').toLowerCase(),
+  );
 
   if (!username) {
     return new Response(JSON.stringify({ error: 'Username is required' }), {
@@ -29,7 +32,7 @@ export async function onRequestGet(context) {
   };
   const preferredEngine =
     engine === 'fallback' ? 'fallback' : context.env?.BROWSER ? 'reference' : 'fallback';
-  const cacheKey = { username, engine: preferredEngine, v: 'compact-v5' };
+  const cacheKey = { username, engine: preferredEngine, v: 'compact-v6' };
 
   const sendEvent = async (data) => {
     try {
@@ -41,7 +44,7 @@ export async function onRequestGet(context) {
 
   const runAudit = async () => {
     try {
-      const cached = await getCachedJson('forensic', cacheKey);
+      const cached = forceRefresh ? { hit: false, data: null } : await getCachedJson('forensic', cacheKey);
 
       if (cached.hit && cached.data?.forensic) {
         await replayCompactForensicResult({
