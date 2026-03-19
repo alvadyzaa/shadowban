@@ -32,7 +32,7 @@ export async function onRequestGet(context) {
     'Access-Control-Allow-Origin': '*',
   };
   const preferredEngine = engine === 'fallback' ? 'fallback' : 'reference';
-  const cacheKey = { username, engine: preferredEngine, v: 'compact-v7' };
+  const cacheKey = { username, engine: preferredEngine, v: 'compact-v8' };
 
   const sendEvent = async (data) => {
     try {

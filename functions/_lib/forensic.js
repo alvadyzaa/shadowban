@@ -3,6 +3,7 @@ function now() {
 }
 
 const MAX_FORENSIC_THREADS = 7;
+const OEMBED_BASE_URL = 'https://publish.twitter.com/oembed?omit_script=1&url=';
 const GENERIC_TWEET_MESSAGES = new Set([
   'tweet is available',
   'tweet visibility could not be confirmed',
@@ -98,6 +99,92 @@ function normalizePreviewText(text) {
     .trim();
 }
 
+function stripHtml(html) {
+  return String(html || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&mdash;/g, '—')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildPreviewFromType(type, text, fallbackMessage) {
+  const preview = normalizePreviewText(text) || normalizePreviewText(fallbackMessage);
+
+  if (!preview) {
+    return normalizePreviewText(fallbackMessage);
+  }
+
+  if (type === 'REPOST') {
+    return preview.startsWith('Repost ') || preview.startsWith('Repost dari ') ? preview : `Repost: ${preview}`;
+  }
+
+  if (type === 'QUOTE') {
+    return preview.startsWith('Quote ') ? preview : `Quote: ${preview}`;
+  }
+
+  if (type === 'REPLY') {
+    return preview.startsWith('Reply ') || preview.startsWith('Reply ke ') ? preview : `Reply: ${preview}`;
+  }
+
+  return preview;
+}
+
+function extractPreviewFromJina(markdown, fallbackMessage) {
+  if (typeof markdown !== 'string' || !markdown.trim()) {
+    return normalizePreviewText(fallbackMessage);
+  }
+
+  const titleMatch = markdown.match(/Title:\s.*?on X:\s"([^"]+)"/i);
+  if (titleMatch?.[1]) {
+    return normalizePreviewText(titleMatch[1]);
+  }
+
+  const lines = markdown
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(
+      (line) =>
+        !line.startsWith('Title:') &&
+        !line.startsWith('URL Source:') &&
+        !line.startsWith('Published Time:') &&
+        !line.startsWith('Markdown Content:') &&
+        line !== '## Post' &&
+        line !== '## Conversation' &&
+        !line.startsWith('[') &&
+        !line.includes('https://x.com/') &&
+        !line.includes('https://twitter.com/'),
+    );
+
+  return normalizePreviewText(lines[0]) || normalizePreviewText(fallbackMessage);
+}
+
+async function fetchOEmbedPreview(tweetUrl) {
+  const response = await fetch(`${OEMBED_BASE_URL}${encodeURIComponent(tweetUrl)}`);
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  return stripHtml(data?.html);
+}
+
+async function fetchJinaPreview(tweetUrl) {
+  const jinaUrl = `https://r.jina.ai/http://${tweetUrl.replace(/^https?:\/\//, '')}`;
+  const response = await fetch(jinaUrl);
+  if (!response.ok) {
+    return null;
+  }
+
+  return extractPreviewFromJina(await response.text(), '');
+}
+
 function inferTypeFromLookup(statusData) {
   if (statusData?.qrt) {
     return 'QUOTE';
@@ -161,19 +248,43 @@ async function enrichTweetIfNeeded(tweet) {
 
   try {
     const response = await fetch(`https://api.vxtwitter.com/status/${tweetId}`);
-    if (!response.ok) {
-      return tweet;
+    if (response.ok) {
+      const statusData = await response.json();
+      return {
+        ...tweet,
+        type: inferTypeFromLookup(statusData),
+        message: buildPreviewFromLookup(statusData, tweet.message),
+      };
     }
-
-    const statusData = await response.json();
-    return {
-      ...tweet,
-      type: inferTypeFromLookup(statusData),
-      message: buildPreviewFromLookup(statusData, tweet.message),
-    };
   } catch {
-    return tweet;
+    // Fall through to secondary preview sources.
   }
+
+  try {
+    const oEmbedPreview = await fetchOEmbedPreview(tweet.url);
+    if (oEmbedPreview) {
+      return {
+        ...tweet,
+        message: buildPreviewFromType(String(tweet?.type || 'POST').toUpperCase(), oEmbedPreview, tweet.message),
+      };
+    }
+  } catch {
+    // Fall through to jina fallback.
+  }
+
+  try {
+    const jinaPreview = await fetchJinaPreview(tweet.url);
+    if (jinaPreview) {
+      return {
+        ...tweet,
+        message: buildPreviewFromType(String(tweet?.type || 'POST').toUpperCase(), jinaPreview, tweet.message),
+      };
+    }
+  } catch {
+    // Keep the original generic message if every enrichment source fails.
+  }
+
+  return tweet;
 }
 
 async function enrichTweets(tweets) {

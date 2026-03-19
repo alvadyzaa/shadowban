@@ -133,7 +133,7 @@ function apiDevMiddleware(): Plugin {
 
         const executablePath = findLocalBrowser()
         const preferredEngine = engine === 'fallback' ? 'fallback' : 'reference'
-        const cacheKey = { username, engine: preferredEngine, v: 'compact-v7' }
+        const cacheKey = { username, engine: preferredEngine, v: 'compact-v8' }
 
         res.setHeader('Content-Type', 'text/event-stream')
         res.setHeader('Cache-Control', 'no-cache')
