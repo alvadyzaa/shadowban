@@ -3,6 +3,8 @@ function now() {
 }
 
 const MAX_FORENSIC_THREADS = 7;
+const MAX_SPECIAL_THREADS = 2;
+const MAX_REPLY_THREADS = 2;
 const OEMBED_BASE_URL = 'https://publish.twitter.com/oembed?omit_script=1&url=';
 const GENERIC_TWEET_MESSAGES = new Set([
   'tweet is available',
@@ -63,8 +65,35 @@ function buildRepresentativeRecentSample(tweets) {
     return items;
   }
 
-  const selected = items.slice(0, MAX_FORENSIC_THREADS);
-  const remaining = items.slice(MAX_FORENSIC_THREADS);
+  const selected = [];
+  let replyCount = 0;
+  let specialCount = 0;
+
+  for (const tweet of items) {
+    if (selected.length >= MAX_FORENSIC_THREADS) {
+      break;
+    }
+
+    const type = String(tweet?.type || '').toUpperCase();
+
+    if (type === 'REPLY' && replyCount >= MAX_REPLY_THREADS) {
+      continue;
+    }
+
+    if ((type === 'REPOST' || type === 'QUOTE') && specialCount >= MAX_SPECIAL_THREADS) {
+      continue;
+    }
+
+    selected.push(tweet);
+
+    if (type === 'REPLY') {
+      replyCount += 1;
+    } else if (type === 'REPOST' || type === 'QUOTE') {
+      specialCount += 1;
+    }
+  }
+
+  const remaining = items.filter((tweet) => !selected.some((entry) => entry.url === tweet.url));
 
   const injectCandidate = (matcher, preserveTypes) => {
     if (selected.some((tweet) => matcher(tweet))) {
