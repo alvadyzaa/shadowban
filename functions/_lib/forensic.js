@@ -38,6 +38,60 @@ export function mapTweetToThread(tweet, index) {
   };
 }
 
+function hasPostType(tweet, type) {
+  return String(tweet?.type || '').toUpperCase() === type;
+}
+
+function findReplacementIndex(tweets, preserveTypes = []) {
+  const preserve = new Set(preserveTypes);
+
+  for (let index = tweets.length - 1; index >= 0; index -= 1) {
+    const type = String(tweets[index]?.type || '').toUpperCase();
+    if (!preserve.has(type)) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function buildRepresentativeRecentSample(tweets) {
+  const items = Array.isArray(tweets) ? tweets.filter(Boolean) : [];
+
+  if (items.length <= MAX_FORENSIC_THREADS) {
+    return items;
+  }
+
+  const selected = items.slice(0, MAX_FORENSIC_THREADS);
+  const remaining = items.slice(MAX_FORENSIC_THREADS);
+
+  const injectCandidate = (matcher, preserveTypes) => {
+    if (selected.some((tweet) => matcher(tweet))) {
+      return;
+    }
+
+    const candidate = remaining.find(
+      (tweet) => matcher(tweet) && !selected.some((entry) => entry.url === tweet.url),
+    );
+    if (!candidate) {
+      return;
+    }
+
+    const replacementIndex = findReplacementIndex(selected, preserveTypes);
+    if (replacementIndex >= 0) {
+      selected[replacementIndex] = candidate;
+    }
+  };
+
+  injectCandidate((tweet) => hasPostType(tweet, 'REPLY'), ['REPLY']);
+  injectCandidate(
+    (tweet) => hasPostType(tweet, 'REPOST') || hasPostType(tweet, 'QUOTE'),
+    ['REPLY', 'REPOST', 'QUOTE'],
+  );
+
+  return selected;
+}
+
 function normalizePreviewText(text) {
   return String(text || '')
     .replace(/\s+/g, ' ')
@@ -281,7 +335,8 @@ export async function streamForensicAudit({ username, sendEvent, fetchDeepScan }
       await sendLog('ℹ️', 'Tidak ditemukan reply publik pada sampel terbaru.', 'info');
     }
 
-    const tweets = await enrichTweets(Array.isArray(data.tweets) ? data.tweets.slice(0, MAX_FORENSIC_THREADS) : []);
+    const sampledTweets = buildRepresentativeRecentSample(Array.isArray(data.tweets) ? data.tweets : []);
+    const tweets = await enrichTweets(sampledTweets);
     const threads = [];
 
     await sendLog('🧪', `Memindai ${tweets.length} item terbaru untuk cek visibilitas...`);

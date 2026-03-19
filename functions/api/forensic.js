@@ -1,4 +1,5 @@
 import { createLog, replayCompactForensicResult } from '../_lib/forensic.js';
+import { fetchFiaDeepScanDirect } from '../_lib/fia-direct.js';
 import { fetchFiaDeepScanWithCloudflareBrowser } from '../_lib/fia-browser-cloudflare.js';
 import { fetchIndependentDeepScan } from '../_lib/forensic-fallback.js';
 import { streamForensicAudit } from '../_lib/forensic.js';
@@ -30,9 +31,8 @@ export async function onRequestGet(context) {
     Connection: 'keep-alive',
     'Access-Control-Allow-Origin': '*',
   };
-  const preferredEngine =
-    engine === 'fallback' ? 'fallback' : context.env?.BROWSER ? 'reference' : 'fallback';
-  const cacheKey = { username, engine: preferredEngine, v: 'compact-v6' };
+  const preferredEngine = engine === 'fallback' ? 'fallback' : 'reference';
+  const cacheKey = { username, engine: preferredEngine, v: 'compact-v7' };
 
   const sendEvent = async (data) => {
     try {
@@ -107,10 +107,18 @@ export async function onRequestGet(context) {
           await sendEvent(data);
         },
         fetchDeepScan: async (targetUsername) => {
-          if (preferredEngine === 'reference' && context.env?.BROWSER) {
+          if (preferredEngine === 'reference') {
             try {
-              return await fetchFiaDeepScanWithCloudflareBrowser(targetUsername, context.env.BROWSER);
+              return await fetchFiaDeepScanDirect(targetUsername);
             } catch {
+              if (context.env?.BROWSER) {
+                try {
+                  return await fetchFiaDeepScanWithCloudflareBrowser(targetUsername, context.env.BROWSER);
+                } catch {
+                  return fetchIndependentDeepScan(targetUsername);
+                }
+              }
+
               return fetchIndependentDeepScan(targetUsername);
             }
           }

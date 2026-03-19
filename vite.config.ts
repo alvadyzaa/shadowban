@@ -9,6 +9,7 @@ import {
   normalizeUsername,
   setCachedJson,
 } from './functions/_lib/cache.js'
+import { fetchFiaDeepScanDirect } from './functions/_lib/fia-direct.js'
 import { fetchFiaDeepScanWithLocalBrowser } from './functions/_lib/fia-browser-local.js'
 import { fetchIndependentDeepScan } from './functions/_lib/forensic-fallback.js'
 import { consumeDeepScanRateLimit } from './functions/_lib/rate-limit.js'
@@ -131,9 +132,8 @@ function apiDevMiddleware(): Plugin {
         }
 
         const executablePath = findLocalBrowser()
-        const preferredEngine =
-          engine === 'fallback' ? 'fallback' : executablePath ? 'reference' : 'fallback'
-        const cacheKey = { username, engine: preferredEngine, v: 'compact-v6' }
+        const preferredEngine = engine === 'fallback' ? 'fallback' : 'reference'
+        const cacheKey = { username, engine: preferredEngine, v: 'compact-v7' }
 
         res.setHeader('Content-Type', 'text/event-stream')
         res.setHeader('Cache-Control', 'no-cache')
@@ -223,10 +223,18 @@ function apiDevMiddleware(): Plugin {
               await sendEvent(data)
             },
             fetchDeepScan: async (targetUsername: string) => {
-              if (preferredEngine === 'reference' && executablePath) {
+              if (preferredEngine === 'reference') {
                 try {
-                  return await fetchFiaDeepScanWithLocalBrowser(targetUsername, executablePath)
+                  return await fetchFiaDeepScanDirect(targetUsername)
                 } catch {
+                  if (executablePath) {
+                    try {
+                      return await fetchFiaDeepScanWithLocalBrowser(targetUsername, executablePath)
+                    } catch {
+                      return fetchIndependentDeepScan(targetUsername)
+                    }
+                  }
+
                   return fetchIndependentDeepScan(targetUsername)
                 }
               }
