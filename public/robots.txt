@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /redirect.html
 
-Sitemap: https://shadowcheck.pages.dev/sitemap.xml
+Sitemap: https://shadowbanchecker.pages.dev/sitemap.xml

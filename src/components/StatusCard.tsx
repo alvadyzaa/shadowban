@@ -221,7 +221,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
     forensicResult
       ? `\nRecent Posts: ${forensicResult.totalVisible}/${forensicResult.totalChecked} visible`
       : ''
-  }\n\nCheck yours here: https://shadowcheck.pages.dev/`;
+  }\n\nCheck yours here: https://shadowbanchecker.pages.dev/`;
 
   return (
     <motion.div 
