@@ -26,14 +26,31 @@ const summaryBadgeClass = {
 
 type SummaryTone = keyof typeof summaryBadgeClass;
 
-const StatusRow: React.FC<{ type: TestType; passed: boolean }> = ({ type, passed }) => {
+const StatusRow: React.FC<{
+  type: TestType;
+  passed: boolean;
+  tone?: SummaryTone;
+  badgeLabel?: string;
+  detailText?: string;
+}> = ({ type, passed, tone, badgeLabel, detailText }) => {
   const info = TEST_DESCRIPTIONS[type];
+  const resolvedTone: SummaryTone = tone ?? (passed ? 'healthy' : 'danger');
+  const icon =
+    resolvedTone === 'warning'
+      ? <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+      : passed
+      ? <CheckCircle className="w-5 h-5 flex-shrink-0" />
+      : <XCircle className="w-5 h-5 flex-shrink-0" />;
+  const iconColor =
+    resolvedTone === 'warning' ? 'text-amber-500' : passed ? 'text-green-500' : 'text-red-500';
+  const label =
+    badgeLabel ?? (resolvedTone === 'warning' ? 'Mixed' : passed ? 'Healthy' : 'Banned');
   
   return (
     <div className="flex flex-row items-start justify-between p-4 bg-muted/40 rounded-xl mb-3 last:mb-0 border border-border/50">
       <div className="flex gap-3">
-        <div className={`mt-0.5 ${passed ? 'text-green-500' : 'text-red-500'}`}>
-          {passed ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
+        <div className={`mt-0.5 ${iconColor}`}>
+          {icon}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 group relative">
@@ -46,11 +63,20 @@ const StatusRow: React.FC<{ type: TestType; passed: boolean }> = ({ type, passed
                <div className="absolute top-full left-1/2 -translate-x-1/2 border-x-4 border-x-transparent border-t-4 border-t-foreground"></div>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">{methodLabels[type]}</p>
+          <p className="text-xs text-muted-foreground mt-1">{detailText ?? methodLabels[type]}</p>
         </div>
       </div>
-      <Badge variant={passed ? "default" : "destructive"} className={passed ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 border-transparent ml-3" : "ml-3"}>
-        {passed ? 'Healthy' : 'Banned'}
+      <Badge
+        variant={resolvedTone === 'danger' ? "destructive" : "default"}
+        className={`${
+          resolvedTone === 'healthy'
+            ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 border-transparent"
+            : resolvedTone === 'warning'
+            ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-transparent"
+            : ""
+        } ml-3`}
+      >
+        {label}
       </Badge>
     </div>
   );
@@ -151,9 +177,9 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
     );
   }
 
-  // Determine ghost ban status: prefer forensic result if available
+  const hasGhostConflict = Boolean(forensicResult) && result.tests.ghostBan !== forensicResult?.ghostBanVerified;
   const ghostBanPassed = forensicResult
-    ? forensicResult.ghostBanVerified
+    ? result.tests.ghostBan && forensicResult.ghostBanVerified
     : result.tests.ghostBan;
   
   const effectiveTests = {
@@ -169,21 +195,28 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
       ? 'healthy'
       : 'danger'
     : 'warning';
-  const replyTone: SummaryTone = effectiveTests.ghostBan ? 'healthy' : 'danger';
+  const replyTone: SummaryTone = hasGhostConflict ? 'warning' : effectiveTests.ghostBan ? 'healthy' : 'danger';
   const searchTone: SummaryTone = effectiveTests.searchBan ? 'healthy' : 'danger';
   const suggestionTone: SummaryTone = effectiveTests.searchSuggestion ? 'healthy' : 'danger';
-  const verdictTitle = allClear ? 'Visibility looks healthy' : 'Visibility issues detected';
-  const verdictDescription = hasDeepScan
+  const verdictTitle = hasGhostConflict
+    ? 'Mixed ghost-ban signals detected'
+    : allClear
+    ? 'Visibility looks healthy'
+    : 'Visibility issues detected';
+  const verdictDescription = hasGhostConflict
+    ? 'Basic check mendeteksi potensi ghost ban, tetapi deep scan tidak berhasil mereproduksi sinyal yang sama. Anggap hasil ini sebagai warning, bukan aman total.'
+    : hasDeepScan
     ? allClear
       ? `Search, reply visibility, dan ${forensicResult?.totalChecked ?? 0} recent-post sample checks terlihat aman.`
       : `Ada sinyal masalah pada search, reply visibility, atau recent-post sample visibility yang perlu diperhatikan.`
     : allClear
     ? 'Basic check terlihat aman. Jalankan deep scan kalau mau verifikasi recent-post sample visibility juga.'
     : 'Basic check mendeteksi potensi pembatasan. Deep scan bisa bantu memastikan seberapa luas dampaknya lewat sampel post terbaru.';
+  const shareGhostText = hasGhostConflict ? 'Mixed / Needs review' : effectiveTests.ghostBan ? 'Healthy' : 'Banned';
   const shareText = `✅ ShadowCheck Results for @${result.username}\n\nSearch Suggestion: ${
     effectiveTests.searchSuggestion ? 'Healthy' : 'Banned'
   }\nSearch Ban: ${effectiveTests.searchBan ? 'Healthy' : 'Banned'}\nGhost Ban: ${
-    effectiveTests.ghostBan ? 'Healthy' : 'Banned'
+    shareGhostText
   }${
     forensicResult
       ? `\nRecent Posts: ${forensicResult.totalVisible}/${forensicResult.totalChecked} visible`
@@ -278,8 +311,14 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
                 {verdictDescription}
               </p>
             </div>
-            <Badge className={`${allClear ? summaryBadgeClass.healthy : summaryBadgeClass.danger} self-start whitespace-nowrap px-3 py-1.5 text-xs leading-none lg:mt-1`}>
-              {allClear ? 'Overall healthy' : 'Needs review'}
+            <Badge className={`${
+              hasGhostConflict
+                ? summaryBadgeClass.warning
+                : allClear
+                ? summaryBadgeClass.healthy
+                : summaryBadgeClass.danger
+            } self-start whitespace-nowrap px-3 py-1.5 text-xs leading-none lg:mt-1`}>
+              {hasGhostConflict ? 'Mixed signals' : allClear ? 'Overall healthy' : 'Needs review'}
             </Badge>
           </div>
 
@@ -338,7 +377,17 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
       <div className="p-4 sm:p-6 flex-1">
         <StatusRow type="searchSuggestion" passed={effectiveTests.searchSuggestion} />
         <StatusRow type="searchBan" passed={effectiveTests.searchBan} />
-        <StatusRow type="ghostBan" passed={effectiveTests.ghostBan} />
+        <StatusRow
+          type="ghostBan"
+          passed={effectiveTests.ghostBan}
+          tone={replyTone}
+          badgeLabel={hasGhostConflict ? 'Mixed' : undefined}
+          detailText={
+            hasGhostConflict
+              ? 'Initial check flagged a reply visibility issue, but deep scan did not reproduce it.'
+              : undefined
+          }
+        />
         {forensicResult && (
           <div className="text-xs text-indigo-500 dark:text-indigo-400 mt-1 mb-2 pl-8 font-medium">
             ✓ Deep Scan selesai dengan {forensicResult.totalChecked} recent-post sample check

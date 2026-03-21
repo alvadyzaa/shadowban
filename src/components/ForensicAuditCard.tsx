@@ -8,6 +8,7 @@ import type { AuditLogEntry, ForensicResult, ForensicThread } from '../types';
 
 interface ForensicAuditCardProps {
   username: string;
+  initialGhostBanPassed: boolean;
   isRunning: boolean;
   logs: AuditLogEntry[];
   threads: ForensicThread[];
@@ -31,6 +32,7 @@ const getThreadIcon = (name: string) => {
 
 export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
   username,
+  initialGhostBanPassed,
   isRunning,
   logs,
   threads,
@@ -107,6 +109,7 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
       ? 'Deep scan engine'
       : 'Deep scan';
   const hasHiddenIssues = totalHidden > 0;
+  const hasGhostConflict = result ? initialGhostBanPassed !== result.ghostBanVerified : false;
 
   if (!isRunning && logs.length === 0 && !result) {
     return (
@@ -156,6 +159,8 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
           <div className="flex items-center gap-3">
             {isRunning ? (
               <Loader2 className="w-5 h-5 text-indigo-500 animate-spin flex-shrink-0" />
+            ) : hasGhostConflict ? (
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
             ) : result?.ghostBanVerified ? (
               <ShieldCheck className="w-5 h-5 text-emerald-500 flex-shrink-0" />
             ) : (
@@ -184,12 +189,20 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
 
         {/* Verdict Banner */}
         {result && !isRunning && (
-          <div className={`px-5 py-3 ${result.ghostBanVerified
+          <div className={`px-5 py-3 ${hasGhostConflict
+            ? 'bg-amber-500/10 border-b border-amber-500/20'
+            : result.ghostBanVerified
             ? 'bg-emerald-500/10 border-b border-emerald-500/20'
             : 'bg-red-500/10 border-b border-red-500/20'
           }`}>
             <div className="flex items-center gap-2">
-              {result.ghostBanVerified ? (
+              {hasGhostConflict ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-amber-500 font-semibold text-sm drop-shadow-sm">Signal bentrok antara basic check dan deep scan</span>
+                  <span className="text-amber-600/80 dark:text-amber-400/80 text-xs hidden sm:inline">— Jangan anggap hasil ini aman total dulu</span>
+                </>
+              ) : result.ghostBanVerified ? (
                 <>
                   <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   <span className="text-emerald-500 font-semibold text-sm drop-shadow-sm">Ghost Ban Verified: AMAN</span>

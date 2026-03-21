@@ -9,6 +9,17 @@ import { checkShadowbanReal, runForensicAudit } from './services/twitterService'
 
 const DEEP_SCAN_DAILY_LIMIT = 5;
 const DEEP_SCAN_USAGE_STORAGE_KEY = 'shadowDeepScanUsage-v2';
+const DEFAULT_PAGE_TITLE = 'ShadowCheck - Free X/Twitter Shadowban Checker';
+const DEFAULT_PAGE_DESCRIPTION =
+  'Check whether an X (Twitter) account is affected by search bans, search suggestion bans, ghost bans, or reply deboosting.';
+
+function updateMetaTag(selector: string, content: string) {
+  if (typeof document === 'undefined') return;
+  const element = document.querySelector(selector);
+  if (element) {
+    element.setAttribute('content', content);
+  }
+}
 
 function notifyAdsInteraction() {
   if (typeof window === 'undefined') return;
@@ -76,6 +87,31 @@ function App() {
   const [forensicThreads, setForensicThreads] = useState<ForensicThread[]>([]);
   const [forensicResult, setForensicResult] = useState<ForensicResult | null>(null);
   const [isForensicRunning, setIsForensicRunning] = useState(false);
+
+  useEffect(() => {
+    const title = result?.exists
+      ? `@${result.username} Shadowban Check Result | ShadowCheck`
+      : DEFAULT_PAGE_TITLE;
+    const description = result?.exists
+      ? `View the latest ShadowCheck result for @${result.username}, including search visibility and ghost ban indicators on X/Twitter.`
+      : DEFAULT_PAGE_DESCRIPTION;
+
+    document.title = title;
+    updateMetaTag('meta[name="description"]', description);
+    updateMetaTag('meta[property="og:title"]', title);
+    updateMetaTag('meta[property="og:description"]', description);
+    updateMetaTag('meta[name="twitter:title"]', title);
+    updateMetaTag('meta[name="twitter:description"]', description);
+
+    return () => {
+      document.title = DEFAULT_PAGE_TITLE;
+      updateMetaTag('meta[name="description"]', DEFAULT_PAGE_DESCRIPTION);
+      updateMetaTag('meta[property="og:title"]', DEFAULT_PAGE_TITLE);
+      updateMetaTag('meta[property="og:description"]', DEFAULT_PAGE_DESCRIPTION);
+      updateMetaTag('meta[name="twitter:title"]', DEFAULT_PAGE_TITLE);
+      updateMetaTag('meta[name="twitter:description"]', DEFAULT_PAGE_DESCRIPTION);
+    };
+  }, [result]);
 
   useEffect(() => {
     let timer: number;
@@ -199,6 +235,7 @@ function App() {
             {result && result.exists && (
               <ForensicAuditCard
                 username={result.username}
+                initialGhostBanPassed={result.tests.ghostBan}
                 isRunning={isForensicRunning}
                 logs={forensicLogs}
                 threads={forensicThreads}

@@ -1,0 +1,17 @@
+{
+  "name": "ShadowCheck",
+  "short_name": "ShadowCheck",
+  "description": "Free X/Twitter shadowban checker for search bans, search suggestion bans, ghost bans, and reply deboosting.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon-twitter.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

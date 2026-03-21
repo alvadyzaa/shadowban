@@ -4,22 +4,192 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon-twitter.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ShadowCheck - X ShadowBan Check</title>
+    <title>ShadowCheck - Free X/Twitter Shadowban Checker</title>
+    <meta
+      name="description"
+      content="Check whether an X (Twitter) account is affected by search bans, search suggestion bans, ghost bans, or reply deboosting. Free shadowban checker for Twitter/X."
+    />
+    <meta
+      name="keywords"
+      content="shadowban checker, twitter shadowban checker, x shadowban checker, ghost ban checker, search ban checker, twitter search suggestion ban, reply deboosting"
+    />
+    <meta name="author" content="Keith" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="application-name" content="ShadowCheck" />
+    <meta name="apple-mobile-web-app-title" content="ShadowCheck" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="canonical" href="https://shadowcheck.pages.dev/" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ShadowCheck" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="ShadowCheck - Free X/Twitter Shadowban Checker" />
+    <meta
+      property="og:description"
+      content="Run a free X/Twitter visibility check for search suggestion bans, search bans, ghost bans, and reply deboosting."
+    />
+    <meta property="og:url" content="https://shadowcheck.pages.dev/" />
+    <meta property="og:image" content="https://shadowcheck.pages.dev/og-image.svg" />
+    <meta property="og:image:alt" content="ShadowCheck social preview card" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ShadowCheck - Free X/Twitter Shadowban Checker" />
+    <meta
+      name="twitter:description"
+      content="Check search bans, search suggestion bans, ghost bans, and reply deboosting for X/Twitter accounts."
+    />
+    <meta name="twitter:image" content="https://shadowcheck.pages.dev/og-image.svg" />
+    <meta name="twitter:image:alt" content="ShadowCheck social preview card" />
+    <meta name="twitter:site" content="@miegrains" />
+    <meta name="twitter:creator" content="@miegrains" />
+
+    <!-- Add your Google Search Console verification tag here once GSC provides it. -->
+    <!-- <meta name="google-site-verification" content="your-verification-token" /> -->
+
+    <style>
+      html {
+        background: #ffffff;
+        color: #09090b;
+      }
+
+      html.dark {
+        background: #09090b;
+        color: #fafafa;
+      }
+
+      body {
+        margin: 0;
+        background: transparent;
+      }
+    </style>
+
+    <script>
+      (function () {
+        try {
+          var savedTheme = localStorage.getItem('theme');
+          var theme =
+            savedTheme === 'light' || savedTheme === 'dark'
+              ? savedTheme
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+
+          var root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(theme);
+        } catch (e) {}
+      })();
+    </script>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://shadowcheck.pages.dev/#website",
+            "url": "https://shadowcheck.pages.dev/",
+            "name": "ShadowCheck",
+            "description": "Free X/Twitter shadowban checker for search bans, search suggestion bans, ghost bans, and reply deboosting.",
+            "inLanguage": ["en", "id"],
+            "publisher": {
+              "@id": "https://shadowcheck.pages.dev/#person"
+            }
+          },
+          {
+            "@type": "Person",
+            "@id": "https://shadowcheck.pages.dev/#person",
+            "name": "Keith",
+            "url": "https://x.com/miegrains",
+            "sameAs": ["https://x.com/miegrains"]
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://shadowcheck.pages.dev/#app",
+            "name": "ShadowCheck",
+            "url": "https://shadowcheck.pages.dev/",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Any",
+            "isAccessibleForFree": true,
+            "browserRequirements": "Requires JavaScript",
+            "description": "Check whether an X/Twitter account is affected by search visibility limits, search suggestion bans, ghost bans, or reply deboosting.",
+            "creator": {
+              "@id": "https://shadowcheck.pages.dev/#person"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://shadowcheck.pages.dev/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What does ShadowCheck test?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "ShadowCheck checks search suggestion visibility, search visibility, ghost ban status, and reply deboosting indicators for X/Twitter accounts."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is ShadowCheck affiliated with X or Twitter?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. ShadowCheck is an independent tool and is not officially affiliated with X Corp."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How long can a shadowban last?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A typical visibility penalty can last around 48 to 72 hours if no further suspicious activity occurs."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body class="overflow-x-hidden w-full">
     <div id="root"></div>
+    <noscript>
+      <main style="max-width: 56rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: Arial, sans-serif;">
+        <h1 style="font-size: 2.5rem; line-height: 1.1; margin: 0 0 1rem; color: #0f172a;">
+          ShadowCheck: Free X/Twitter Shadowban Checker
+        </h1>
+        <p style="font-size: 1.125rem; line-height: 1.7; margin: 0 0 1rem; color: #334155;">
+          Check if an X or Twitter account is affected by search bans, search suggestion bans, ghost bans,
+          or reply deboosting.
+        </p>
+        <p style="font-size: 1rem; line-height: 1.7; margin: 0; color: #475569;">
+          ShadowCheck requires JavaScript to run live account checks, but search engines can still read this page
+          metadata for indexing.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       (function () {
-        var host = window.location.hostname;
-        var isLocal = host === 'localhost' || host === '127.0.0.1';
-        var script = document.createElement('script');
-        script.src = isLocal ? '/ads-loader.js' : 'https://ads-3wl.pages.dev/ads-loader.js';
-        script.setAttribute('data-site', 'shadowbanchecker.pages.dev');
-        script.setAttribute('data-trigger', '1');
-        script.setAttribute('data-track-mode', 'manual');
-        script.setAttribute('data-stats-url', 'https://ads-stats-worker.derazelmiku.workers.dev');
-        document.body.appendChild(script);
+        var d = function (value) {
+          return atob(value);
+        };
+        var h = window.location.hostname;
+        var l = h === d('bG9jYWxob3N0') || h === d('MTI3LjAuMC4x');
+        var s = document.createElement(d('c2NyaXB0'));
+        s.src = l ? d('L2Fkcy1sb2FkZXIuanM=') : d('aHR0cHM6Ly9hZHMtM3dsLnBhZ2VzLmRldi9hZHMtbG9hZGVyLmpz');
+        s.setAttribute(d('ZGF0YS1zaXRl'), d('c2hhZG93YmFuY2hlY2tlci5wYWdlcy5kZXY='));
+        s.setAttribute(d('ZGF0YS10cmlnZ2Vy'), d('MQ=='));
+        s.setAttribute(d('ZGF0YS10cmFjay1tb2Rl'), d('bWFudWFs'));
+        s.setAttribute(d('ZGF0YS1zdGF0cy11cmw='), d('aHR0cHM6Ly9hZHMtc3RhdHMtd29ya2VyLmRlcmF6ZWxtaWt1LndvcmtlcnMuZGV2'));
+        document.body.appendChild(s);
       })();
     </script>
   </body>

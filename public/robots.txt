@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /redirect.html
+
+Sitemap: https://shadowcheck.pages.dev/sitemap.xml

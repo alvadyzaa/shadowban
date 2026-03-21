@@ -1,0 +1,27 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#F8FAFC"/>
+  <rect x="42" y="42" width="1116" height="546" rx="36" fill="url(#bg)"/>
+  <circle cx="1036" cy="132" r="92" fill="#0EA5E9" fill-opacity="0.12"/>
+  <circle cx="948" cy="522" r="138" fill="#2563EB" fill-opacity="0.10"/>
+  <rect x="96" y="96" width="126" height="126" rx="28" fill="#0F172A"/>
+  <path d="M198.067 117H217.401L175.132 165.287L224.857 231H185.989L155.5 191.151L120.635 231H101.286L146.497 179.316L98.809 117H138.662L166.227 153.503L198.067 117ZM191.277 219.506H201.99L132.841 127.89H121.345L191.277 219.506Z" fill="white"/>
+  <text x="96" y="296" fill="#E2E8F0" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="0.14em">
+    SHADOWCHECK
+  </text>
+  <text x="96" y="370" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">
+    Free X/Twitter
+  </text>
+  <text x="96" y="446" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">
+    Shadowban Checker
+  </text>
+  <text x="96" y="508" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="30">
+    Search bans, ghost bans, reply deboosting, and visibility checks.
+  </text>
+  <rect x="96" y="540" width="256" height="18" rx="9" fill="#38BDF8"/>
+  <defs>
+    <linearGradient id="bg" x1="42" y1="42" x2="1158" y2="588" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#1D4ED8"/>
+    </linearGradient>
+  </defs>
+</svg>
