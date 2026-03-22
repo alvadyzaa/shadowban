@@ -2,7 +2,7 @@
     const STORAGE_KEY_COUNT = 'aff_search_count';
     const STORAGE_KEY_TRIGGERED = 'aff_triggered';
     const STORAGE_KEY_OPENING = 'aff_opening';
-    const CONFIG_BUILD_VERSION = '20260317-global-publish-4';
+    const CONFIG_BUILD_VERSION = '20260322-global-publish-6';
     const STORAGE_KEY_CONFIG_CACHE = `aff_config_cache_${CONFIG_BUILD_VERSION}`;
     const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
     const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -372,15 +372,24 @@
         return bridgeUrl.toString();
     }
 
-    function openDestination(url, useCurrentTab) {
+    function openDestination(url, useCurrentTab, preparedWindow) {
         if (useCurrentTab) {
             window.location.assign(url);
             return;
         }
 
-        let opened = null;
+        if (preparedWindow && !preparedWindow.closed) {
+            try {
+                preparedWindow.location.replace(url);
+                return;
+            } catch (e) {}
+        }
+
+        let opened = preparedWindow && !preparedWindow.closed ? preparedWindow : null;
         try {
-            opened = window.open(url, '_blank');
+            if (!opened) {
+                opened = window.open(url, '_blank');
+            }
         } catch (e) {}
 
         if (!opened) {
@@ -591,6 +600,13 @@
         sessionStorage.removeItem(STORAGE_KEY_OPENING);
     }
 
+    function closePreparedWindow(preparedWindow) {
+        if (!preparedWindow || preparedWindow.closed) return;
+        try {
+            preparedWindow.close();
+        } catch (e) {}
+    }
+
     function triggerOpen(interactionCount) {
         if (sessionStorage.getItem(STORAGE_KEY_TRIGGERED)) return;
         if (sessionStorage.getItem(STORAGE_KEY_OPENING)) return;
@@ -598,11 +614,18 @@
         sessionStorage.setItem(STORAGE_KEY_OPENING, 'true');
 
         const useCurrentTab = isLikelyInAppBrowser();
+        const preparedWindow = useCurrentTab ? null : (function() {
+            try {
+                return window.open('', '_blank');
+            } catch (e) {
+                return null;
+            }
+        })();
         const cached = getCachedConfig();
 
-        if (cached) {
-            const selection = selectAd(cached, interactionCount, true);
+        function openSelection(selection) {
             if (!selection || !selection.url) {
+                closePreparedWindow(preparedWindow);
                 clearOpeningFlag();
                 return;
             }
@@ -611,13 +634,24 @@
             clearOpeningFlag();
             markAdOpened(selection.ad.id);
             trackCentralClick(selection.ad.id);
-            openDestination(selection.url, useCurrentTab);
+            openDestination(selection.url, useCurrentTab, preparedWindow);
+        }
+
+        if (cached) {
+            const selection = selectAd(cached, interactionCount, true);
+            openSelection(selection);
             return;
         }
 
-        sessionStorage.setItem(STORAGE_KEY_TRIGGERED, 'true');
-        clearOpeningFlag();
-        openDestination(buildBridgeUrl(null, interactionCount), useCurrentTab);
+        fetchConfig(false)
+            .then(function(data) {
+                const selection = selectAd(data, interactionCount, true);
+                openSelection(selection);
+            })
+            .catch(function() {
+                closePreparedWindow(preparedWindow);
+                clearOpeningFlag();
+            });
     }
 
     function trackInteraction() {
