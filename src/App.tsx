@@ -21,6 +21,8 @@ function updateMetaTag(selector: string, content: string) {
   }
 }
 
+type CheckSource = 'hero-submit' | 'recent-check';
+
 function notifyAdsInteraction() {
   if (typeof window === 'undefined') return;
   const callback = (window as typeof window & { onUserSearchPerformed?: () => void }).onUserSearchPerformed;
@@ -141,9 +143,13 @@ function App() {
 
   const deepScanRemaining = Math.max(0, DEEP_SCAN_DAILY_LIMIT - deepScanCount);
   const deepScanLimitReached = deepScanRemaining <= 0;
-
-  const handleCheck = async (username: string) => {
+ 
+  const handleCheck = async (username: string, source: CheckSource = 'recent-check') => {
     if (isLoading || cooldown > 0) return;
+
+    if (source === 'hero-submit') {
+      notifyAdsInteraction();
+    }
     
     setIsLoading(true);
     setResult(null);
@@ -177,8 +183,6 @@ function App() {
 
   const handleForensicAudit = useCallback(async () => {
     if (!result?.username || isForensicRunning || deepScanLimitReached) return;
-
-    notifyAdsInteraction();
     
     setIsForensicRunning(true);
     setDeepScanCount((count) => count + 1);
@@ -215,7 +219,7 @@ function App() {
                      <button
                        key={name}
                        onClick={() => {
-                         handleCheck(name);
+                         handleCheck(name, 'recent-check');
                        }}
                        disabled={isLoading || cooldown > 0}
                        className="px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-full hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"

@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 
 interface HeroProps {
-  onCheck: (username: string) => void;
+  onCheck: (username: string, source: 'hero-submit') => void;
   isLoading: boolean;
   visitorCount?: number | null;
 }
@@ -25,7 +25,7 @@ export const Hero: React.FC<HeroProps> = ({ onCheck, isLoading, visitorCount }) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() && cooldown === 0) {
-      onCheck(username.trim());
+      onCheck(username.trim(), 'hero-submit');
       setCooldown(5);
     }
   };
