@@ -177,6 +177,69 @@ export const StatusCard: React.FC<StatusCardProps> = ({ result, forensicResult }
     );
   }
 
+  if (result.testsReliable === false) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+        className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border overflow-hidden max-w-2xl mx-auto"
+      >
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex-shrink-0 overflow-hidden border-2 border-background shadow-sm relative">
+              {!imageError ? (
+                <img
+                  src={result.profileImageUrl || `https://unavatar.io/twitter/${result.username}`}
+                  alt={result.username}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.src.includes('unavatar.io')) {
+                      img.src = `https://unavatar.io/twitter/${result.username}`;
+                    } else {
+                      setImageError(true);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground font-bold text-xl uppercase">
+                  {result.username.charAt(0)}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xl font-bold text-foreground truncate">{result.displayName || `@${result.username}`}</h3>
+              <p className="text-muted-foreground truncate">@{result.username}</p>
+              {result.followersCount !== undefined && result.followingCount !== undefined && (
+                <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                  <span><strong className="text-foreground">{result.followingCount.toLocaleString()}</strong> Following</span>
+                  <span><strong className="text-foreground">{result.followersCount.toLocaleString()}</strong> Followers</span>
+                </div>
+              )}
+            </div>
+            <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-transparent px-3 py-1.5 text-sm">
+              <AlertTriangle className="w-4 h-4 mr-1.5" /> Retry Recommended
+            </Badge>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <h4 className="font-semibold text-foreground">Account found, but basic visibility data is unstable</h4>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {result.sourceWarning || 'Primary visibility API returned inconsistent profile data for this username.'}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Akun ini tidak lagi ditandai sebagai `not found`, tapi hasil basic check sebaiknya di-refresh sekali lagi atau lanjutkan dengan deep scan untuk verifikasi.
+            </p>
+          </div>
+
+          <div className="mt-4 text-xs text-muted-foreground">
+            Last checked: {new Date(result.timestamp).toLocaleString()}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   const hasGhostConflict = Boolean(forensicResult) && result.tests.ghostBan !== forensicResult?.ghostBanVerified;
   const ghostBanPassed = forensicResult
     ? result.tests.ghostBan && forensicResult.ghostBanVerified

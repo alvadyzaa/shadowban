@@ -239,7 +239,7 @@ function App() {
             {result && result.exists && (
               <ForensicAuditCard
                 username={result.username}
-                initialGhostBanPassed={result.tests.ghostBan}
+                initialGhostBanPassed={result.testsReliable === false ? null : result.tests.ghostBan}
                 isRunning={isForensicRunning}
                 logs={forensicLogs}
                 threads={forensicThreads}

@@ -8,7 +8,7 @@ import type { AuditLogEntry, ForensicResult, ForensicThread } from '../types';
 
 interface ForensicAuditCardProps {
   username: string;
-  initialGhostBanPassed: boolean;
+  initialGhostBanPassed: boolean | null;
   isRunning: boolean;
   logs: AuditLogEntry[];
   threads: ForensicThread[];
@@ -109,7 +109,8 @@ export const ForensicAuditCard: React.FC<ForensicAuditCardProps> = ({
       ? 'Deep scan engine'
       : 'Deep scan';
   const hasHiddenIssues = totalHidden > 0;
-  const hasGhostConflict = result ? initialGhostBanPassed !== result.ghostBanVerified : false;
+  const hasGhostConflict =
+    result && initialGhostBanPassed !== null ? initialGhostBanPassed !== result.ghostBanVerified : false;
 
   if (!isRunning && logs.length === 0 && !result) {
     return (

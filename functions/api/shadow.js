@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
       throw new Error('Username is required');
     }
 
-    const cacheKey = { username, v: 'reset-v2' };
+    const cacheKey = { username, v: 'reset-v3' };
     const cached = await getCachedJson('shadow', cacheKey);
 
     if (cached.hit) {
@@ -26,10 +26,14 @@ export async function onRequestPost(context) {
     }
 
     const result = await runShadowCheck(username);
-    await setCachedJson('shadow', cacheKey, result, DEFAULT_CACHE_TTL_SECONDS);
+    const shouldCache = result.exists === true && result.testsReliable !== false;
+
+    if (shouldCache) {
+      await setCachedJson('shadow', cacheKey, result, DEFAULT_CACHE_TTL_SECONDS);
+    }
 
     return new Response(JSON.stringify(result), {
-      headers: createCacheHeaders('MISS', DEFAULT_CACHE_TTL_SECONDS),
+      headers: createCacheHeaders(shouldCache ? 'MISS' : 'SKIP', shouldCache ? DEFAULT_CACHE_TTL_SECONDS : 0),
     });
   } catch (error) {
     return new Response(

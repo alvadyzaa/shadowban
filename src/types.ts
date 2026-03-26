@@ -6,6 +6,8 @@ export interface CheckResult {
   followingCount?: number;
   isVerified?: boolean;
   exists: boolean;
+  testsReliable?: boolean;
+  sourceWarning?: string;
   tests: {
     searchSuggestion: boolean; // true = passed (no ban), false = failed (banned)
     searchBan: boolean;
